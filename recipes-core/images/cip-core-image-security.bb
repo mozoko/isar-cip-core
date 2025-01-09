@@ -33,6 +33,8 @@ IMAGE_PREINSTALL += " \
 	passwd \
 	login \
 	util-linux \
+	apache2 \
+	curl \
 "
 
 CIP_IMAGE_OPTIONS ?= ""
