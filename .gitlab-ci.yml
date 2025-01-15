@@ -105,4 +105,26 @@ build:qemu-amd64-base:
     swu_type: zchunk
     release: trixie
 
+build:qemu-arm64-base:
+  extends:
+    - .build_base
+  variables:
+    target: qemu-arm64
+    extension: security
+    use_rt: disable
+    build_swu_v2: enable
+    swu_type: zchunk
+    release: trixie
+
+build:qemu-arm-base:
+  extends:
+    - .build_base
+  variables:
+    target: qemu-arm
+    extension: security
+    use_rt: disable
+    build_swu_v2: enable
+    swu_type: zchunk
+    release: trixie
+
 include: '.reproducible-check-ci.yml'
