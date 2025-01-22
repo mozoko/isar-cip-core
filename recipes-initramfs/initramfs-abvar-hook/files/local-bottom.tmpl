@@ -1,0 +1,86 @@
+#
+# CIP Core, generic profile
+#
+# Copyright (c) Siemens, 2025
+#
+# Authors:
+#  Jan Kiszka <jan.kiszka@siemens.com>
+#
+
+var_device="${INITRAMFS_VAR_DEVICE}"
+var_opts="${INITRAMFS_VAR_MOUNT_OPTIONS}"
+btrfs_mnt="/.var-btrfs"
+snap_prefix="abvar-"
+
+. "${rootmnt}/etc/os-release"
+
+get_default_subvolume()
+{
+	subvol=$(btrfs subvolume get-default "$1" | grep path || true)
+	echo "${subvol##*path }"
+}
+
+ustate_val=$(bg_printenv -c -r -o ustate)
+
+# when in testing state or on first boot, create new snapshot
+if [ "$ustate_val" = "USTATE=2" ] ||
+    ! mount -t btrfs -o "$var_opts,subvol=/$snap_prefix$IMAGE_UUID" \
+	"$var_device" "${rootmnt}/var" 2>/dev/null; then
+	log_begin_msg "Creating new /var snapshot for image $IMAGE_UUID"
+
+	mkdir "$btrfs_mnt"
+	mount -t btrfs -o subvol=/ "$var_device" "$btrfs_mnt"
+
+	# delete any dangling previous snapshot
+	btrfs subvolume delete "$btrfs_mnt/$snap_prefix$IMAGE_UUID" \
+		2>/dev/null || true
+
+	default_subvol=$(get_default_subvolume "$btrfs_mnt")
+	btrfs subvolume snapshot "$btrfs_mnt/$default_subvol" \
+		"$btrfs_mnt/$snap_prefix$IMAGE_UUID"
+
+	umount "$btrfs_mnt"
+	rmdir "$btrfs_mnt"
+
+	log_end_msg
+
+	mount -t btrfs -o "$var_opts,subvol=/$snap_prefix$IMAGE_UUID" \
+		"$var_device" "${rootmnt}/var"
+else
+	default_subvol=$(get_default_subvolume "${rootmnt}/var")
+fi
+
+active_entry=$(btrfs subvolume list -a "${rootmnt}/var" |
+	grep "<FS_TREE>/$snap_prefix$IMAGE_UUID")
+active_id="${active_entry#ID }"
+active_id="${active_id%% *}"
+
+# adjust default subvolume to the active one
+if [ "$default_subvol" != "$snap_prefix$IMAGE_UUID" ]; then
+	log_begin_msg "Adjusting /var subvolume default to $IMAGE_UUID"
+	btrfs subvolume set-default "$active_id" "${rootmnt}/var"
+	log_end_msg
+fi
+
+if [ "$(bg_printenv -c -r -o ustate)" != "USTATE=0" ]; then
+	# still testing the current version, skip cleanup
+	exit 0
+fi
+
+# get rid of obsolete snapshots, ie. everything but the active one
+log_begin_msg "Performing /var snapshot housekeeping"
+
+IFS="
+"
+for entry in $(btrfs subvolume list -aqu "${rootmnt}/var" |
+		grep "<FS_TREE>/$snap_prefix"); do
+	entry_id="${entry#ID }"
+	entry_id="${entry_id%% *}"
+
+	if [ "$entry_id" != "$active_id" ]; then
+		btrfs subvolume delete -i "$entry_id" "${rootmnt}/var"
+	fi
+done
+unset IFS
+
+log_end_msg
