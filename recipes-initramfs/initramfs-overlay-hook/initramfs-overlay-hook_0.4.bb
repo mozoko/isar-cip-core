@@ -47,7 +47,7 @@ DEBIAN_DEPENDS .= ", awk, coreutils, util-linux, e2fsprogs"
 HOOK_ADD_MODULES = "overlay"
 HOOK_COPY_EXECS = "mountpoint awk e2fsck mke2fs"
 
-SCRIPT_PREREQ="crypt"
+SCRIPT_PREREQ = "crypt abvar"
 
 do_install:append() {
     install -m 0755 "${WORKDIR}/${INITRAMFS_OVERLAY_RECOVERY_SCRIPT}" \
