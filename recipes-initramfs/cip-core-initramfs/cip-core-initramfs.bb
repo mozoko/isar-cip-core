@@ -15,6 +15,7 @@ INITRAMFS_INSTALL += " \
     initramfs-overlay-hook \
     "
 
+INITRAMFS_INSTALL:append:abvar = " initramfs-abvar-hook"
 INITRAMFS_INSTALL:append:encrypt-partitions = " initramfs-crypt-hook"
 INITRAMFS_INSTALL:append:factory-reset = " initramfs-factory-reset-hook"
 INITRAMFS_INSTALL:append:ftpm-stmm = " initramfs-tee-ftpm-hook"
