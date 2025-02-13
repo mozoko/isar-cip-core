@@ -17,4 +17,5 @@ local_conf_header:
     IMAGE_FSTYPES:append = " delta_update"
     DELTA_UPDATE_TYPE = "rdiff"
     DELTA_RDIFF_REF_IMAGE = "${IMAGE_FULLNAME}.${SWU_ROOTFS_TYPE}"
+    DELTA_RDIFF_REF_KERNEL_IMAGE = "linux.efi"
     DELTA_ZCK_URL = ""
