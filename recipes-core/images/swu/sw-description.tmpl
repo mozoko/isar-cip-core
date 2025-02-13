@@ -21,20 +21,21 @@ software =
             properties: {
                         subtype = "image";
                         configfilecheck = "/etc/os-release@not_match@IMAGE_UUID=${TARGET_IMAGE_UUID}";
-                        ${SWU_DELTA_UPDATE_PROPERTIES}
+                        ${SWU_DELTA_UPDATE_ROOTFS_PROPERTIES}
             };
             sha256 = "${SWU_ROOTFS_ARTIFACT_NAME}-sha256";
     });
     files: ({
-            filename = "linux.efi";
+            filename = "${SWU_KERNEL_ARTIFACT_NAME}";
             path = "linux.efi";
             type = "roundrobin";
             device = "C:BOOT0:linux.efi->BOOT0,C:BOOT1:linux.efi->BOOT1";
             filesystem = "vfat";
             properties: {
                         subtype = "kernel";
+                        ${SWU_DELTA_UPDATE_KERNEL_PROPERTIES}
             };
-            sha256 = "linux.efi-sha256";
+            sha256 = "${SWU_KERNEL_ARTIFACT_NAME}-sha256";
     }${SWU_FILE_NODES});
     ${SWU_SCRIPTS_NODE}
 }

@@ -15,6 +15,7 @@ inherit template
 RO_ROOTFS_TYPE ??= "squashfs"
 SWU_ROOTFS_TYPE ?= "${RO_ROOTFS_TYPE}"
 SWU_ROOTFS_NAME ?= "${IMAGE_FULLNAME}"
+SWU_KERNEL_NAME ?= "linux.efi"
 # compression type as defined by swupdate (zlib or zstd). Set to empty string to disable compression
 SWU_COMPRESSION_TYPE ?= "zlib"
 SWU_ROOTFS_PARTITION_NAME ?= "${SWU_ROOTFS_NAME}.${SWU_ROOTFS_TYPE}${@get_swu_compression_type(d)}"
@@ -32,9 +33,14 @@ SWU_ROOTFS_ARTIFACT_NAME = "${@ '${SWU_DELTA_UPDATE_ARTIFACT}' \
     if d.getVar('DELTA_UPDATE_TYPE') == "rdiff" or d.getVar('DELTA_UPDATE_TYPE') == "zchunk" \
     else '${SWU_ROOTFS_PARTITION_NAME}'}"
 
+SWU_DELTA_UPDATE_KERNEL_ARTIFACT = "${SWU_KERNEL_NAME}.delta_update"
+SWU_KERNEL_ARTIFACT_NAME = "${@ '${SWU_DELTA_UPDATE_KERNEL_ARTIFACT}' \
+    if d.getVar('DELTA_UPDATE_TYPE') == "rdiff" \
+    else '${SWU_KERNEL_NAME}'}"
+
 SWU_IMAGE_FILE ?= "${IMAGE_FULLNAME}"
 SWU_DESCRIPTION_FILE ?= "sw-description"
-SWU_ADDITIONAL_FILES ?= "linux.efi ${SWU_ROOTFS_ARTIFACT_NAME}"
+SWU_ADDITIONAL_FILES ?= "${SWU_KERNEL_ARTIFACT_NAME} ${SWU_ROOTFS_ARTIFACT_NAME}"
 SWU_SIGNED ??= ""
 SWU_SIGNATURE_EXT ?= "sig"
 SWU_SIGNATURE_TYPE ?= "cms"
@@ -58,6 +64,7 @@ IMAGE_TEMPLATE_FILES:swu += "${SWU_DESCRIPITION_FILE_BOOTLOADER}.tmpl"
 IMAGE_TEMPLATE_VARS:swu = " \
     RO_ROOTFS_TYPE \
     SWU_ROOTFS_ARTIFACT_NAME \
+    SWU_KERNEL_ARTIFACT_NAME \
     TARGET_IMAGE_UUID \
     ABROOTFS_PART_UUID_A \
     ABROOTFS_PART_UUID_B \
@@ -68,7 +75,8 @@ IMAGE_TEMPLATE_VARS:swu = " \
     SWU_FILE_NODES \
     SWU_BOOTLOADER_FILE_NODE \
     SWU_SCRIPTS_NODE \
-    SWU_DELTA_UPDATE_PROPERTIES \
+    SWU_DELTA_UPDATE_ROOTFS_PROPERTIES \
+    SWU_DELTA_UPDATE_KERNEL_PROPERTIES \
     "
 
 # TARGET_IMAGE_UUID needs to be generated before completing the template
@@ -163,17 +171,21 @@ python add_scripts_node() {
 SWU_EXTEND_SW_DESCRIPTION += "add_swu_delta_update_properties"
 python add_swu_delta_update_properties() {
     delta_type = d.getVar('DELTA_UPDATE_TYPE')
-    swu_delta_update_properties = ""
+    swu_delta_update_rootfs_properties = ""
+    swu_delta_update_kernel_properties = ""
     if delta_type == "rdiff":
-        swu_delta_update_properties =  'chainhandler = "rdiff_image";'
+        swu_delta_update_rootfs_properties =  'chainhandler = "rdiff_image";'
+        swu_delta_update_kernel_properties =  'chainhandler = "rdiff_file";'
     elif delta_type == "zchunk":
         zck_url = d.getVar('DELTA_ZCK_URL')
-        swu_delta_update_properties = f"""
+        swu_delta_update_rootfs_properties = f"""
                         chainhandler = "delta";
                         url = "{zck_url}";
                         zckloglevel = "error";
         """
-    d.setVar('SWU_DELTA_UPDATE_PROPERTIES', swu_delta_update_properties)
+    d.setVar('SWU_DELTA_UPDATE_ROOTFS_PROPERTIES', swu_delta_update_rootfs_properties)
+    d.setVar('SWU_DELTA_UPDATE_KERNEL_PROPERTIES', swu_delta_update_kernel_properties)
+
 }
 
 # convert between swupdate compressor name and imagetype extension
