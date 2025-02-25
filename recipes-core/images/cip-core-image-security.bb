@@ -33,7 +33,7 @@ IMAGE_PREINSTALL += " \
 	passwd \
 	login \
 	util-linux \
-	apache2 \
+	nginx \
 	curl \
 "
 
