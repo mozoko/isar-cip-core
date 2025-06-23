@@ -26,3 +26,7 @@ local_conf_header:
     PREFERRED_PROVIDER_swupdate-certificates-key ??= "swupdate-certificates-key-snakeoil"
     PREFERRED_PROVIDER_swupdate-certificates ??= "swupdate-certificates-snakeoil"
     PREFERRED_PROVIDER_swupdate-signer ??= "swupdate-signer-cms"
+
+  wfx: |
+    WFX_URL ??= ""
+    IMAGE_INSTALL += " wfx-onboarding-progress-client"
