@@ -508,6 +508,30 @@ test:qemu-arm-secure-boot-unsigned-bootloader:
     target: qemu-arm
     test_function: secure-boot-unsigned-bootloader
 
+test:qemu-amd64-secure-boot-corrupt-rootfs:
+  extends:
+    - .test-cip-core
+  needs: ["build:qemu-amd64-base"]
+  variables:
+    target: qemu-amd64
+    test_function: secure-boot-corrupt-rootfs
+
+test:qemu-arm64-secure-boot-corrupt-rootfs:
+  extends:
+    - .test-cip-core
+  needs: ["build:qemu-arm64-base"]
+  variables:
+    target: qemu-arm64
+    test_function: secure-boot-corrupt-rootfs
+
+test:qemu-arm-secure-boot-corrupt-rootfs:
+  extends:
+    - .test-cip-core
+  needs: ["build:qemu-arm-base"]
+  variables:
+    target: qemu-arm
+    test_function: secure-boot-corrupt-rootfs
+
 test:qemu-amd64-secure-boot-mismatch-keys:
   extends:
     - .test-cip-core

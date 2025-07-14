@@ -1,0 +1,7 @@
+          - "apt-get update"
+          - "apt install -y fdisk"
+          - "rootfs_start_sector=$(fdisk -l -o Name,Start cip-core-image-security-cip-core-#distribution#-#architecture#.wic | awk -v name=systema '$0 ~ name {print $2}')"
+          - "rootfs_start=$((${rootfs_start_sector} * 512))"
+          # The value 96 is squashfs superblock header size, so skip header and corrupt the data after that.
+          - "offset=$((${rootfs_start} + 96))"
+          - "dd if=/dev/zero of=cip-core-image-security-cip-core-#distribution#-#architecture#.wic bs=1 seek=${offset} count=8 conv=notrunc"
