@@ -82,7 +82,7 @@ default:
           echo "PV = \"2.0\"" >> recipes-core/images/cip-core-image-security.bb;
           if [ "${swu_type}" = "zchunk" ]; then
               sed -i -e 's@rdiff@zchunk@g' kas/opt/delta-update.yml;
-              zchunk_url="http://localhost:8000/cip-core-image-${extension}-cip-core-${release}-${target}.zck";
+              zchunk_url="http://localhost:2015/cip-core-image-${extension}-cip-core-${release}-${target}.zck";
               sed -ri "s|DELTA_ZCK_URL = \"\"|DELTA_ZCK_URL = \"${zchunk_url}\"|g" kas/opt/delta-update.yml;
           fi;
           kas build ${base_yaml}:kas/opt/delta-update.yml;
