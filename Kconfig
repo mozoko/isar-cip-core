@@ -114,6 +114,13 @@ config KERNEL_6_12
 	bool "Kernel 6.12.x-cip"
 	depends on !TARGET_IWG20D
 
+config NO_KERNEL
+	bool "Do not install kernel to image"
+	help
+	  This does not build the kernel or install it on rootfs.
+	  This can be used when creating images for testing kernels that are
+	  built separately, e.g. via KernleCI.
+
 endchoice
 
 config KAS_INCLUDE_KERNEL
@@ -123,6 +130,7 @@ config KAS_INCLUDE_KERNEL
 	default "kas/opt/5.10.yml" if KERNEL_5_10
 	default "kas/opt/6.1.yml" if KERNEL_6_1
 	default "kas/opt/6.12.yml" if KERNEL_6_12
+	default "kas/opt/no_kernel.yml" if NO_KERNEL
 
 config KERNEL_HEAD
 	bool "Head of selected CIP kernel branch"
