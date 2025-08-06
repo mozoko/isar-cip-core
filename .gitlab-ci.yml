@@ -210,27 +210,6 @@ build:hihope-rzg2m-test:
     extension: test
     dtb: r8a774a1-hihope-rzg2m-ex.dtb
 
-build:qemu-amd64-test:
-  extends:
-    - .build_base
-  variables:
-    target:  qemu-amd64
-    extension: test
-
-build:qemu-arm64-test:
-  extends:
-    - .build_base
-  variables:
-    target:  qemu-arm64
-    extension: test
-
-build:qemu-arm-test:
-  extends:
-    - .build_base
-  variables:
-    target:  qemu-arm
-    extension: test
-
 build:qemu-amd64-test-nokernel:
   extends:
     - .build_base
