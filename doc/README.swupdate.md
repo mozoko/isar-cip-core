@@ -408,16 +408,19 @@ host$ ./kas-container build kas-cip.yml:kas/board/qemu-amd64.yml:kas/opt/ebg-swu
 ```
 The image is built with the RT kernel just so that there are some differences between the two images used. The above image will be used as the base image to which the update is applied.
 
-## Delta Software Update using rdiff_image handler
+## Delta Software Update using rdiff (rdiff_image & rdiff_file handlers)
 
-Creating an delta update file for rdiff_image handler requires a reference artifact (against which the delta is computed). In this case, the image built in the previous section can be used as the reference artifact. By default the `DELTA_UPDATE_TYPE` is set to `rdiff` and `DELTA_RDIFF_REF_IMAGE` is set to the name `${IMAGE_FULLNAME}.squashfs` (or ${IMAGE_FULLNAME}.verity in the case of Secure boot enabled image). The values of `DELTA_UPDATE_TYPE` and `DELTA_RDIFF_REF_IMAGE` can be changed in the `delta-update.yml` file.
+**Note**: Only `rdiff` supports delta kernel binary update using `rdiff_file` handler.
+
+Creating an delta update file for rdiff_image (rootfs) and rdiff_file (kernel)  handlers requires a reference artifacts (against which the delta is computed). In this case, the image and kernel built in the previous section can be used as the reference artifacts. By default the `DELTA_UPDATE_TYPE` is set to `rdiff`, `DELTA_RDIFF_REF_IMAGE` is set to the name `${IMAGE_FULLNAME}.squashfs` (or ${IMAGE_FULLNAME}.verity in the case of Secure boot enabled image) and `DELTA_RDIFF_REF_KERNEL_IMAGE` is set to the name `linux.efi`. The values of `DELTA_UPDATE_TYPE`, `DELTA_RDIFF_REF_IMAGE` and `DELTA_RDIFF_REF_KERNEL_IMAGE` can be changed in the `delta-update.yml` file.
 
 The build system looks for the reference artifact in a directory named `previous-image` in the build directory used for the build process.
 
-Copy the reference artifact to the mentioned directory with the following commands:
+Copy the reference artifacts to the mentioned directory with the following commands:
 ```
 mkdir -p build-v2/previous-image
 cp build/tmp/deploy/images/qemu-amd64/cip-core-image-cip-core-bookworm-qemu-amd64.squashfs build-v2/previous-image
+cp build/tmp/deploy/images/qemu-amd64/linux.efi build-v2/previous-image
 ```
 Build the second image with `build-v2` as the build directory with the following command:
 ```
