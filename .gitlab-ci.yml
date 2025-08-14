@@ -92,6 +92,18 @@ build:x86-uefi-base:
   variables:
     target: x86-uefi
 
+build:x86-uefi-secure-boot:
+  extends:
+    - .build_base
+  variables:
+    target: x86-uefi
+    extension: security
+    use_rt: disable
+    targz: disable
+    watchdog: disable
+    security_test: enable
+    build_swu_v2: enable
+
 build:qemu-amd64-base:
   extends:
     - .build_base
@@ -101,7 +113,6 @@ build:qemu-amd64-base:
     security_test: enable
     use_rt: disable
     build_swu_v2: enable
-    separate_home_partition: enable
 
 build:qemu-arm64-base:
   extends:
@@ -112,7 +123,6 @@ build:qemu-arm64-base:
     security_test: enable
     use_rt: disable
     build_swu_v2: enable
-    separate_home_partition: enable
 
 build:qemu-arm-base:
   extends:
@@ -123,7 +133,7 @@ build:qemu-arm-base:
     security_test: enable
     use_rt: disable
     build_swu_v2: enable
-    separate_home_partition: enable
+
 
 .test-cip-core:
   stage: test
@@ -146,6 +156,37 @@ build:qemu-arm-base:
     reports:
       junit: results/results*.xml
 
+test:qemu-amd64-secure-boot:
+  extends:
+    - .test-cip-core
+  needs: ["build:qemu-amd64-base"]
+  variables:
+    target: qemu-amd64
+    test_function: secure-boot
+
+test:qemu-arm64-secure-boot:
+  extends:
+    - .test-cip-core
+  needs: ["build:qemu-arm64-base"]
+  variables:
+    target: qemu-arm64
+    test_function: secure-boot
+
+test:qemu-arm-secure-boot:
+  extends:
+    - .test-cip-core
+  needs: ["build:qemu-arm-base"]
+  variables:
+    target: qemu-arm
+    test_function: secure-boot
+
+test:x86-uefi-secure-boot:
+  extends:
+    - .test-cip-core
+  needs: ["build:x86-uefi-secure-boot"]
+  variables:
+    target: x86-uefi
+    test_function: secure-boot
 
 test:qemu-amd64-secure-boot-corrupt-rootfs:
   extends:
