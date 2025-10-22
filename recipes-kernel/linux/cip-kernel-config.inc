@@ -10,7 +10,8 @@
 #
 
 SRC_URI:append = " ${@ \
-    'git://gitlab.com/cip-project/cip-kernel/cip-kernel-config.git;protocol=https;branch=master;destsuffix=cip-kernel-config;name=cip-kernel-config' \
+    'git://gitlab.com/cip-project/cip-kernel/cip-kernel-config.git;protocol=https;branch=master;destsuffix=cip-kernel-config;name=cip-kernel-config \
+    file://no-tpm-hwrng.cfg' \
     if d.getVar('USE_CIP_KERNEL_CONFIG') == '1' else '' \
     }"
 
