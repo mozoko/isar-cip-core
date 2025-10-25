@@ -37,6 +37,9 @@ config HAS_SWUPDATE
 config HAS_EFIVARS
 	bool
 
+config HAS_OPTEE
+	bool
+
 choice
 	prompt "Target board"
 	default TARGET_QEMU_AMD64
@@ -57,6 +60,7 @@ config TARGET_QEMU_ARM64
 	bool "QEMU ARM64 (aarch64)"
 	select ARCH_ARM64
 	select HAS_SWUPDATE
+	select HAS_OPTEE if KERNEL_6_12
 
 config TARGET_HIHOPE_RZG2M
 	bool "HopeRun HiHope-RZ/G2M"
@@ -156,6 +160,21 @@ config KAS_INCLUDE_KERNEL_RT
 	string
 	default "kas/opt/rt.yml"
 	depends on KERNEL_RT
+
+if HAS_OPTEE
+
+comment "Firmware options"
+
+config FTPM_STMM
+	bool "Use Firmware TPM and rewritable UEFI key storage"
+	default y
+
+config KAS_INCLUDE_FTPM_STMM
+	string
+	default "kas/opt/ftpm-stmm.yml"
+	depends on FTPM_STMM
+
+endif
 
 comment "Debian distribution options"
 
