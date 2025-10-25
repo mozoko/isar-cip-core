@@ -1,0 +1,28 @@
+From b93d9e7cc2b39a6d16356d391d2d7832ed4b9202 Mon Sep 17 00:00:00 2001
+From: Fabio Estevam <festevam@gmail.com>
+Date: Thu, 14 Aug 2025 20:14:36 +0200
+Subject: [PATCH 2/3] qemu_arm: Select CONFIG_SYS_EARLY_PCI_INIT
+
+Select CONFIG_SYS_EARLY_PCI_INIT so that eMMC emulation can
+work.
+
+Signed-off-by: Fabio Estevam <festevam@gmail.com>
+---
+ board/emulation/qemu-arm/Kconfig | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/board/emulation/qemu-arm/Kconfig b/board/emulation/qemu-arm/Kconfig
+index 80ab9d8e1c3..447061b25cd 100644
+--- a/board/emulation/qemu-arm/Kconfig
++++ b/board/emulation/qemu-arm/Kconfig
+@@ -8,6 +8,7 @@ config BOARD_SPECIFIC_OPTIONS # dummy
+ 	select HAS_CUSTOM_SYS_INIT_SP_ADDR
+ 	select QFW if ACPI
+ 	select QFW_MMIO if CMD_QFW
++	imply SYS_EARLY_PCI_INIT
+ 	imply VIRTIO_MMIO
+ 	imply VIRTIO_PCI
+ 	imply VIRTIO_NET
+-- 
+2.51.0
+
