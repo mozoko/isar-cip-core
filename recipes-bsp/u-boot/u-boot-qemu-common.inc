@@ -20,6 +20,11 @@ do_prepare_build:append() {
     cat ${WORKDIR}/qemu-extra.cfg >> ${S}/configs/${U_BOOT_CONFIG}
 }
 
+python() {
+    if 'ftpm-stmm' in d.getVar('OVERRIDES').split(':'):
+        d.setVarFlag('do_deploy_firmware', 'noexec', '1')
+}
+
 do_deploy_firmware() {
     dpkg --fsys-tarfile "${WORKDIR}/u-boot-${MACHINE}_${PV}_${DISTRO_ARCH}.deb" | \
         tar xOf - "./usr/lib/u-boot/${MACHINE}/${U_BOOT_BIN}" \
