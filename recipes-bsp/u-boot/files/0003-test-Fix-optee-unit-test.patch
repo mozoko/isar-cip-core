@@ -1,0 +1,134 @@
+From a7ff306c8ea79743552992638b8d228818cd9975 Mon Sep 17 00:00:00 2001
+From: Jan Kiszka <jan.kiszka@siemens.com>
+Date: Mon, 15 Sep 2025 07:50:26 +0200
+Subject: [PATCH 3/3] test: Fix optee unit test
+
+This was apparently not built for several years: Since a2535243e011,
+optee_copy_fdt_nodes implicitly works against the U-Boot dt. We
+therefore have to tweak its reference before using the function and
+restore things afterwards.
+
+If it had been built, actually trying it out would have failed next: We
+need CONFIG_OPTEE_LIB to actually build the function that is primarily
+being tested here. And we need to re-initialize target fdt, now that the
+tests may run in random order.
+
+Fixes: a2535243e011 ("lib: optee: migration optee_copy_fdt_nodes for OF_LIVE support")
+Fixes: ba2feaf41435 ("test: Split optee tests into three functions")
+Signed-off-by: Jan Kiszka <jan.kiszka@siemens.com>
+---
+ test/optee/Kconfig |  1 +
+ test/optee/optee.c | 42 +++++++++++++++++++++++++++++++-----------
+ 2 files changed, 32 insertions(+), 11 deletions(-)
+
+diff --git a/test/optee/Kconfig b/test/optee/Kconfig
+index 63e2cbf79c7..ebf8d07c41c 100644
+--- a/test/optee/Kconfig
++++ b/test/optee/Kconfig
+@@ -1,6 +1,7 @@
+ config UT_OPTEE
+ 	bool "Enable OP-TEE Unit Tests"
+ 	depends on OF_CONTROL && OPTEE
++	select OPTEE_LIB
+ 	default y
+ 	help
+ 	  This enables the 'ut optee' command which runs a series of unit
+diff --git a/test/optee/optee.c b/test/optee/optee.c
+index 658621fa2fa..7e1c8d04a11 100644
+--- a/test/optee/optee.c
++++ b/test/optee/optee.c
+@@ -5,16 +5,20 @@
+ 
+ #include <command.h>
+ #include <errno.h>
++#include <fdtdec.h>
+ #include <fdt_support.h>
+ #include <log.h>
+ #include <malloc.h>
+ #include <tee/optee.h>
++#include <asm/global_data.h>
+ 
+ #include <linux/sizes.h>
+ 
+ #include <test/ut.h>
+ #include <test/optee.h>
+ 
++DECLARE_GLOBAL_DATA_PTR;
++
+ /* 4k ought to be enough for anybody */
+ #define FDT_COPY_SIZE	(4 * SZ_1K)
+ 
+@@ -40,14 +44,6 @@ static int optee_test_init(struct unit_test_state *uts)
+ 	if (!fdt)
+ 		return ret;
+ 
+-	/*
+-	 * Resize the FDT to 4k so that we have room to operate on
+-	 *
+-	 * (and relocate it since the memory might be mapped
+-	 * read-only)
+-	 */
+-	ut_assertok(fdt_open_into(fdt_base, fdt, FDT_COPY_SIZE));
+-
+ 	return 0;
+ }
+ OPTEE_TEST_INIT(optee_test_init, 0);
+@@ -127,9 +123,21 @@ static int optee_fdt_protected_memory(struct unit_test_state *uts)
+ static int optee_fdt_copy_empty(struct unit_test_state *uts)
+ {
+ 	void *fdt_no_optee = &__dtb_test_optee_no_optee_begin;
++	const void *fdt_blob = gd->fdt_blob;
++
++	/*
++	 * Resize the FDT to 4k so that we have room to operate on
++	 *
++	 * (and relocate it since the memory might be mapped
++	 * read-only)
++	 */
++	ut_assertok(fdt_open_into(&__dtb_test_optee_base_begin, fdt,
++				  FDT_COPY_SIZE));
+ 
+ 	/* This should still run successfully */
+-	ut_assertok(optee_copy_fdt_nodes(fdt_no_optee, fdt));
++	gd->fdt_blob = fdt_no_optee;
++	ut_assertok(optee_copy_fdt_nodes(fdt));
++	gd->fdt_blob = fdt_blob;
+ 
+ 	expect_success = false;
+ 	ut_assertok(optee_fdt_firmware(uts));
+@@ -143,8 +151,14 @@ OPTEE_TEST(optee_fdt_copy_empty, 0);
+ static int optee_fdt_copy_prefilled(struct unit_test_state *uts)
+ {
+ 	void *fdt_optee = &__dtb_test_optee_optee_begin;
++	const void *fdt_blob = gd->fdt_blob;
+ 
+-	ut_assertok(optee_copy_fdt_nodes(fdt_optee, fdt));
++	ut_assertok(fdt_open_into(&__dtb_test_optee_base_begin, fdt,
++				  FDT_COPY_SIZE));
++
++	gd->fdt_blob = fdt_optee;
++	ut_assertok(optee_copy_fdt_nodes(fdt));
++	gd->fdt_blob = fdt_blob;
+ 
+ 	expect_success = true;
+ 	ut_assertok(optee_fdt_firmware(uts));
+@@ -158,9 +172,15 @@ OPTEE_TEST(optee_fdt_copy_prefilled, 0);
+ static int optee_fdt_copy_already_filled(struct unit_test_state *uts)
+ {
+ 	void *fdt_optee = &__dtb_test_optee_optee_begin;
++	const void *fdt_blob = gd->fdt_blob;
++
++	ut_assertok(fdt_open_into(&__dtb_test_optee_base_begin, fdt,
++				  FDT_COPY_SIZE));
+ 
+ 	ut_assertok(fdt_open_into(fdt_optee, fdt, FDT_COPY_SIZE));
+-	ut_assertok(optee_copy_fdt_nodes(fdt_optee, fdt));
++	gd->fdt_blob = fdt_optee;
++	ut_assertok(optee_copy_fdt_nodes(fdt));
++	gd->fdt_blob = fdt_blob;
+ 
+ 	expect_success = true;
+ 	ut_assertok(optee_fdt_firmware(uts));
+-- 
+2.51.0
+

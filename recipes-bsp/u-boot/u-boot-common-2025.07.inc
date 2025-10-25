@@ -18,8 +18,12 @@ SRC_URI += " \
     file://0001-tools-Do-not-generate-logo-when-cross-building.patch \
     file://0001-Kconfig-Convert-SYS_EARLY_PCI_INIT-to-Kconfig.patch \
     file://0002-qemu_arm-Select-CONFIG_SYS_EARLY_PCI_INIT.patch \
+    file://0003-test-Fix-optee-unit-test.patch \
     file://rules.tmpl;subdir=debian"
 SRC_URI[sha256sum] = "0f933f6c5a426895bf306e93e6ac53c60870e4b54cda56d95211bec99e63bec7"
+
+SRC_URI:append:ftpm-stmm = " \
+    file://ftpm-stmm.cfg"
 
 SRC_URI:append:secureboot = " \
     file://secure-boot.cfg"
@@ -37,10 +41,17 @@ STATIC_KEYS_BUILD_DEPENDS:append:bookworm = ", pesign"
 STATIC_KEYS_DEPENDS = "secure-boot-secrets"
 
 SECURE_BOOT_BUILD_DEPENDS = "${STATIC_KEYS_BUILD_DEPENDS}"
+SECURE_BOOT_BUILD_DEPENDS:ftpm-stmm = ""
 SECURE_BOOT_DEPENDS = "${STATIC_KEYS_DEPENDS}"
+SECURE_BOOT_DEPENDS:ftpm-stmm = ""
 
 DEBIAN_BUILD_DEPENDS:append:secureboot = "${SECURE_BOOT_BUILD_DEPENDS}"
 DEPENDS:append:secureboot = "${SECURE_BOOT_DEPENDS}"
+
+do_prepare_build:append:ftpm-stmm() {
+    sed -ni '/### Enable OPTEE, fTPM and StMM/q;p' ${S}/configs/${U_BOOT_CONFIG}
+    cat ${WORKDIR}/ftpm-stmm.cfg >> ${S}/configs/${U_BOOT_CONFIG}
+}
 
 do_prepare_build:append:secureboot() {
     sed -ni '/### Secure boot config/q;p' ${S}/configs/${U_BOOT_CONFIG}
