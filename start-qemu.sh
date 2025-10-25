@@ -2,7 +2,7 @@
 #
 # CIP Core, generic profile
 #
-# Copyright (c) Siemens AG, 2019-2024
+# Copyright (c) Siemens AG, 2019-2025
 #
 # Authors:
 #  Jan Kiszka <jan.kiszka@siemens.com>
@@ -89,11 +89,11 @@ case "${arch}" in
 			-device virtio-net-pci,netdev=net"
 		if [ -n "${SECURE_BOOT}" ]; then
 			# set bootindex=0 to boot disk instead of EFI-shell
-			QEMU_EXTRA_ARGS=" \
-			${QEMU_EXTRA_ARGS} -device ide-hd,drive=disk,bootindex=0"
+			QEMU_EXTRA_ARGS="${QEMU_EXTRA_ARGS}  \
+				-device ide-hd,drive=disk,bootindex=0"
 		else
-			QEMU_EXTRA_ARGS=" \
-			${QEMU_EXTRA_ARGS} -device ide-hd,drive=disk"
+			QEMU_EXTRA_ARGS="${QEMU_EXTRA_ARGS}  \
+				-device ide-hd,drive=disk"
 		fi
 		KERNEL_CMDLINE=" \
 			root=/dev/sda rw"
@@ -174,9 +174,9 @@ if [ "$TPM2_ENCRYPTION" = "true" ] && [ -x /usr/bin/swtpm ]; then
 				;;
 		esac
 		QEMU_EXTRA_ARGS="${QEMU_EXTRA_ARGS} \
-			 -chardev socket,id=chrtpm,path=/tmp/qemu-swtpm.sock \
-			 -tpmdev emulator,id=tpm0,chardev=chrtpm \
-			 -device ${TPM_DEVICE},tpmdev=tpm0"
+			-chardev socket,id=chrtpm,path=/tmp/qemu-swtpm.sock \
+			-tpmdev emulator,id=tpm0,chardev=chrtpm \
+			-device ${TPM2_DEVICE},tpmdev=tpm0"
 	fi
 fi
 
