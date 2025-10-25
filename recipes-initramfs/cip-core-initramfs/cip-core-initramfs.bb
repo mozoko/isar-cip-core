@@ -17,3 +17,4 @@ INITRAMFS_INSTALL += " \
 
 INITRAMFS_INSTALL:append:encrypt-partitions = " initramfs-crypt-hook"
 INITRAMFS_INSTALL:append:factory-reset = " initramfs-factory-reset-hook"
+INITRAMFS_INSTALL:append:ftpm-stmm = " initramfs-tee-ftpm-hook"
