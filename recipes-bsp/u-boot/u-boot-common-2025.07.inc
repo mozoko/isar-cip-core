@@ -29,12 +29,18 @@ S = "${WORKDIR}/u-boot-${PV}"
 DEBIAN_BUILD_DEPENDS += ", libssl-dev:native, libssl-dev:${DISTRO_ARCH}, \
     libgnutls28-dev:native, libgnutls28-dev:${DISTRO_ARCH}"
 
-DEBIAN_BUILD_DEPENDS:append:secureboot = ", \
+STATIC_KEYS_BUILD_DEPENDS = ", \
     openssl, efivar, secure-boot-secrets, python3-openssl:native"
-DEBIAN_BUILD_DEPENDS:append:secureboot:buster   = ", pesign"
-DEBIAN_BUILD_DEPENDS:append:secureboot:bullseye = ", pesign"
-DEBIAN_BUILD_DEPENDS:append:secureboot:bookworm = ", pesign"
-DEPENDS:append:secureboot = " secure-boot-secrets"
+STATIC_KEYS_BUILD_DEPENDS:append:buster   = ", pesign"
+STATIC_KEYS_BUILD_DEPENDS:append:bullseye = ", pesign"
+STATIC_KEYS_BUILD_DEPENDS:append:bookworm = ", pesign"
+STATIC_KEYS_DEPENDS = "secure-boot-secrets"
+
+SECURE_BOOT_BUILD_DEPENDS = "${STATIC_KEYS_BUILD_DEPENDS}"
+SECURE_BOOT_DEPENDS = "${STATIC_KEYS_DEPENDS}"
+
+DEBIAN_BUILD_DEPENDS:append:secureboot = "${SECURE_BOOT_BUILD_DEPENDS}"
+DEPENDS:append:secureboot = "${SECURE_BOOT_DEPENDS}"
 
 do_prepare_build:append:secureboot() {
     sed -ni '/### Secure boot config/q;p' ${S}/configs/${U_BOOT_CONFIG}
