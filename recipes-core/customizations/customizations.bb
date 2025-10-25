@@ -1,7 +1,7 @@
 #
 # CIP Core, generic profile
 #
-# Copyright (c) Siemens AG, 2019-2022
+# Copyright (c) Siemens AG, 2019-2025
 #
 # Authors:
 #  Jan Kiszka <jan.kiszka@siemens.com>
@@ -13,6 +13,8 @@ require common.inc
 
 SRC_URI += "file://ssh-permit-root.conf"
 SRC_URI:remove:security = "file://ssh-permit-root.conf"
+
+DEBIAN_DEPENDS:append:secureboot = ", efitools"
 
 DESCRIPTION = "CIP Core image demo & customizations"
 
