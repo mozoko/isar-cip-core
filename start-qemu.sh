@@ -31,9 +31,6 @@ if grep -s -q "IMAGE_SECURE_BOOT: true" .config.yaml; then
 elif grep -s -q "IMAGE_SWUPDATE: true" .config.yaml; then
 	SWUPDATE_BOOT="true"
 fi
-if grep -s -q "IMAGE_DATA_ENCRYPTION: true" .config.yaml; then
-	TPM2_ENCRYPTION="true"
-fi
 
 if [ -n "${QEMU_PATH}" ]; then
 	QEMU_PATH="${QEMU_PATH}/"
@@ -77,6 +74,20 @@ else
 	fi
 fi
 
+if grep -s -q "IMAGE_DATA_ENCRYPTION: true" .config.yaml && \
+   ! grep -s -q "FTPM_STMM: true" .config.yaml; then
+	case "${arch}" in
+		x86|x86_64|amd64)
+			TPM2_DEVICE="tpm-tis"
+			;;
+		arm|armhf|arm64|aarch64)
+			TPM2_DEVICE="tpm-tis-device"
+			;;
+	esac
+fi
+
+IMAGE_EXT="wic"
+
 case "${arch}" in
 	x86|x86_64|amd64)
 		QEMU_ARCH=amd64
@@ -104,11 +115,20 @@ case "${arch}" in
 		QEMU_EXTRA_ARGS=" \
 			-cpu cortex-a57 \
 			-smp 4 \
-			-machine virt \
 			-device virtio-serial-device \
 			-device virtconsole,chardev=con -chardev vc,id=con \
-			-device virtio-blk-device,drive=disk \
 			-device virtio-net-device,netdev=net"
+		if [ -z "${TPM2_DEVICE}" ]; then
+			QEMU_EXTRA_ARGS="${QEMU_EXTRA_ARGS} \
+				-machine virt,secure=on \
+				-device sdhci-pci -device emmc,drive=disk,rpmb-partition-size=2097152 \
+				-serial vc"
+			IMAGE_EXT="qemu-emmc"
+		else
+			QEMU_EXTRA_ARGS="${QEMU_EXTRA_ARGS} \
+				-machine virt \
+				-device virtio-blk-device,drive=disk"
+		fi
 		KERNEL_CMDLINE=" \
 			root=/dev/vda rw"
 		;;
@@ -161,18 +181,12 @@ if [ -z "${DISPLAY}" ]; then
 	esac
 fi
 
-if [ "$TPM2_ENCRYPTION" = "true" ] && [ -x /usr/bin/swtpm ]; then
+if [ -n "$TPM2_DEVICE" ] && [ -x /usr/bin/swtpm ]; then
 	SWTPM_DIR="${IMAGE_PREFIX}.swtpm"
 	mkdir -p "${SWTPM_DIR}"
 	if swtpm socket -d --tpmstate dir="${SWTPM_DIR}" \
-			 --ctrl type=unixio,path=/tmp/qemu-swtpm.sock \
-			 --tpm2; then
-		TPM_DEVICE=tpm-tis-device
-		case "${arch}" in
-			x86|x86_64|amd64)
-				TPM_DEVICE=tpm-tis
-				;;
-		esac
+			--ctrl type=unixio,path=/tmp/qemu-swtpm.sock \
+			--tpm2; then
 		QEMU_EXTRA_ARGS="${QEMU_EXTRA_ARGS} \
 			-chardev socket,id=chrtpm,path=/tmp/qemu-swtpm.sock \
 			-tpmdev emulator,id=tpm0,chardev=chrtpm \
@@ -189,7 +203,7 @@ QEMU_COMMON_OPTIONS=" \
 
 if [ -n "${SECURE_BOOT}${SWUPDATE_BOOT}" ]; then
 	QEMU_COMMON_OPTIONS=" \
-		-drive file=${IMAGE_PREFIX}.wic,discard=unmap,if=none,id=disk,format=raw \
+		-drive file=${IMAGE_PREFIX}.${IMAGE_EXT},discard=unmap,if=none,id=disk,format=raw \
 		${QEMU_COMMON_OPTIONS} \
 		"
 	case "${arch}" in
@@ -213,10 +227,10 @@ if [ -n "${SECURE_BOOT}${SWUPDATE_BOOT}" ]; then
 			fi
 			;;
 		arm64|aarch64|arm|armhf)
-			u_boot_bin=${FIRMWARE_BIN:-./build/tmp/deploy/images/qemu-${QEMU_ARCH}/firmware.bin}
+			firmware_bin=${FIRMWARE_BIN:-./build/tmp/deploy/images/qemu-${QEMU_ARCH}/firmware.bin}
 
 			${QEMU_PATH}${QEMU} \
-				-bios ${u_boot_bin} \
+				-bios ${firmware_bin} \
 				${QEMU_COMMON_OPTIONS} "$@"
 			;;
 		rv64|riscv64)
