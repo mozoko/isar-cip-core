@@ -14,7 +14,7 @@
 
 variables:
   GIT_STRATEGY: clone
-  release: bookworm
+  release: trixie
   extension: none
   use_rt: enable
   encrypt: disable
@@ -103,13 +103,6 @@ build:bbb-base:
     target: bbb
     dtb: am335x-boneblack.dtb
 
-build:iwg20m-base:
-  extends:
-    - .build_base
-  variables:
-    target: iwg20m
-    dtb: r8a7743-iwg20d-q7-dbcm-ca.dtb
-
 build:hihope-rzg2m-base:
   extends:
     - .build_base
@@ -180,7 +173,16 @@ build:qemu-arm-base-kernelci:
     deploy: disable
     #deploy_kernelci: enable
 
-# test
+build:qemu-riscv64:
+  extends:
+    - .build_base
+  variables:
+    target: qemu-riscv64
+    use_rt: disable
+    targz: disable
+    deploy: disable
+
+# test images
 build:x86-uefi-test:
   extends:
     - .build_base
@@ -195,14 +197,6 @@ build:bbb-test:
     target: bbb
     extension: test
     dtb: am335x-boneblack.dtb
-
-build:iwg20m-test:
-  extends:
-    - .build_base
-  variables:
-    target: iwg20m
-    extension: test
-    dtb: r8a7743-iwg20d-q7-dbcm-ca.dtb
 
 build:hihope-rzg2m-test:
   extends:
@@ -244,7 +238,6 @@ build:qemu-riscv64-test-nokernel:
     - .build_base
   variables:
     target:  qemu-riscv64
-    release: trixie
     extension: test
     use_rt: disable
     no_kernel: enable
@@ -272,6 +265,34 @@ build:qemu-amd64-swupdate:
     targz: disable
     deploy: disable
     factory_reset: enable
+
+# bookworm images
+build:qemu-amd64-bookworm:
+  extends:
+    - .build_base
+  variables:
+    target: qemu-amd64
+    extension: security
+    security_test: enable
+    use_rt: disable
+    release: bookworm
+
+build:iwg20m-bookworm-test:
+  extends:
+    - .build_base
+  variables:
+    target: iwg20m
+    extension: test
+    dtb: r8a7743-iwg20d-q7-dbcm-ca.dtb
+    release: bookworm
+
+build:hihope-rzg2m-bookworm:
+  extends:
+    - .build_base
+  variables:
+    target: hihope-rzg2m
+    dtb: r8a774a1-hihope-rzg2m-ex.dtb
+    release: bookworm
 
 # bullseye images
 build:iwg20m-bullseye:
@@ -333,17 +354,7 @@ build:qemu-amd64-secure-boot-buster:
     deploy: disable
     encrypt: enable
 
-# trixie images
-build:qemu-riscv64:
-  extends:
-    - .build_base
-  variables:
-    target: qemu-riscv64
-    release: trixie
-    use_rt: disable
-    targz: disable
-    deploy: disable
-
+# tests
 .test-cip-core:
   stage: test
   image: $CI_REGISTRY_IMAGE/lavacli
@@ -450,6 +461,15 @@ test:qemu-amd64-IEC:
   extends:
    - .test-cip-core
   needs: ["build:qemu-amd64-base"]
+  variables:
+    target: qemu-amd64
+    test_function: IEC
+    iec_test_timeout: 40
+
+test:qemu-amd64-IEC-bookworm:
+  extends:
+   - .test-cip-core
+  needs: ["build:qemu-amd64-bookworm"]
   variables:
     target: qemu-amd64
     test_function: IEC
