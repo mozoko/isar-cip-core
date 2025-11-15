@@ -47,7 +47,6 @@ OVERRIDES .= ":ftpm-stmm"
 
 DEPENDS += "trusted-firmware-a-ti-k3 optee-os-ti-k3"
 DEBIAN_BUILD_DEPENDS =. "gcc-arm-linux-gnueabihf, \
-    libssl-dev:native, libssl-dev, grub-common, \
     swig, python3-dev:native, python3-setuptools, python3-pyelftools, \
     python3-jsonschema:native, yamllint:native, \
     trusted-firmware-a-ti-k3, optee-os-ti-k3,"
