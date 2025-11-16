@@ -103,6 +103,13 @@ build:bbb-base:
     target: bbb
     dtb: am335x-boneblack.dtb
 
+build:de0-nano-soc-base:
+  extends:
+    - .build_base
+  variables:
+    target: de0-nano-soc
+    dtb: socfpga_cyclone5_de0_nano_soc.dtb
+
 build:iwg20m-base:
   extends:
     - .build_base
