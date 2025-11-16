@@ -178,8 +178,13 @@ create_job_qemu () {
 	sed -i -e "s@#architecture#@${2}@g" -e "s@#imageargs#@${image_args[$2]}@g" "${job_dir}"/*.yml
 
 	if [ "$1" = "secure-boot-mismatch-keys" ]; then
-		sed -i "s@/usr/share/OVMF/OVMF_CODE_4M.secboot.fd@/root/keys/trixie-ovmf/OVMF_CODE_4M.snakeoil.fd@g" "${job_dir}/${1}_mismatch_keys_${2}.yml"
-		sed -i "s@/usr/share/OVMF/OVMF_VARS_4M.snakeoil.fd@/root/keys/trixie-ovmf/OVMF_VARS_4M.snakeoil.fd@g" "${job_dir}/${1}_mismatch_keys_${2}.yml"
+		if [ "${RELEASE}" = "trixie" ]; then
+			KEYS_DISTRO=bookworm
+		else
+			KEYS_DISTRO=trixie
+		fi
+		sed -i "s@/usr/share/OVMF/OVMF_CODE_4M.secboot.fd@/root/keys/${KEYS_DISTRO}-ovmf/OVMF_CODE_4M.secboot.fd@g" "${job_dir}/${1}_mismatch_keys_${2}.yml"
+		sed -i "s@/usr/share/OVMF/OVMF_VARS_4M.snakeoil.fd@/root/keys/${KEYS_DISTRO}-ovmf/OVMF_VARS_4M.snakeoil.fd@g" "${job_dir}/${1}_mismatch_keys_${2}.yml"
 	fi
 
 	# Target is recieved from gitlab job in form of qemu-"architecture"
