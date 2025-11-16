@@ -91,6 +91,11 @@ config TARGET_BBB
 	select ARCH_ARM
 	select HAS_SWUPDATE
 
+config TARGET_DE0_NANO_SOC
+	bool "DE0-Nano-SoC"
+	select ARCH_ARM
+	select HAS_SWUPDATE
+
 config TARGET_IWG20D
 	bool "iWave Systems RainboW-G20D-Qseven"
 	select ARCH_ARM
@@ -119,6 +124,7 @@ config KAS_INCLUDE_BOARD
 	default "kas/board/hihope-rzg2m.yml" if TARGET_HIHOPE_RZG2M
 	default "kas/board/qemu-arm.yml" if TARGET_QEMU_ARM
 	default "kas/board/bbb.yml" if TARGET_BBB
+	default "kas/board/de0-nano-soc.yml" if TARGET_DE0_NANO_SOC
 	default "kas/board/iwg20m.yml" if TARGET_IWG20D
 	default "kas/board/qemu-riscv64.yml" if TARGET_QEMU_RISCV64
 	default "kas/board/ti-am62px-sk.yml" if TARGET_TI_AM62PX_SK
