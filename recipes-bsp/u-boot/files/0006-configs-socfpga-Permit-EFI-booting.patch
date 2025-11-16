@@ -1,0 +1,229 @@
+From bd234afd41c8c21ac9caa7992c3e0b8292cca8b0 Mon Sep 17 00:00:00 2001
+From: Jan Kiszka <jan.kiszka@siemens.com>
+Date: Fri, 14 Nov 2025 16:18:14 +0100
+Subject: [PATCH 6/6] configs: socfpga: Permit EFI booting
+
+Commit f369e1564cf4 turned those off because the SPL size grew too
+large. It also argued that those boards would never support EFI booting.
+The former is correct, therefore keep CONFIG_SPL_EFI_PARTITION off.
+CONFIG_SPL_ISO_PARTITION is default off. What is not correct is that
+those boards are limited to legacy boot - you just need a hybrid
+partition table to make both the bootrom and UEFI happy.
+
+Signed-off-by: Jan Kiszka <jan.kiszka@siemens.com>
+---
+ configs/socfpga_agilex5_defconfig       | 3 +--
+ configs/socfpga_arria5_defconfig        | 3 +--
+ configs/socfpga_cyclone5_defconfig      | 3 +--
+ configs/socfpga_de0_nano_soc_defconfig  | 3 +--
+ configs/socfpga_de10_nano_defconfig     | 3 +--
+ configs/socfpga_de10_standard_defconfig | 3 +--
+ configs/socfpga_de1_soc_defconfig       | 3 +--
+ configs/socfpga_is1_defconfig           | 3 +--
+ configs/socfpga_mcvevk_defconfig        | 3 +--
+ configs/socfpga_secu1_defconfig         | 3 +--
+ configs/socfpga_sockit_defconfig        | 3 +--
+ configs/socfpga_socrates_defconfig      | 3 +--
+ configs/socfpga_sr1500_defconfig        | 3 +--
+ configs/socfpga_vining_fpga_defconfig   | 3 +--
+ 14 files changed, 14 insertions(+), 28 deletions(-)
+
+diff --git a/configs/socfpga_agilex5_defconfig b/configs/socfpga_agilex5_defconfig
+index 4ac0a5d9b99..4cb9d1fa4c2 100644
+--- a/configs/socfpga_agilex5_defconfig
++++ b/configs/socfpga_agilex5_defconfig
+@@ -64,8 +64,7 @@ CONFIG_CMD_WDT=y
+ CONFIG_CMD_CACHE=y
+ CONFIG_CMD_TIMER=y
+ CONFIG_CMD_UBI=y
+-# CONFIG_ISO_PARTITION is not set
+-# CONFIG_EFI_PARTITION is not set
++# CONFIG_SPL_EFI_PARTITION is not set
+ CONFIG_OF_LIST=""
+ CONFIG_ENV_IS_IN_UBI=y
+ CONFIG_ENV_UBI_PART="root"
+diff --git a/configs/socfpga_arria5_defconfig b/configs/socfpga_arria5_defconfig
+index f3c142300f2..4685314fbb1 100644
+--- a/configs/socfpga_arria5_defconfig
++++ b/configs/socfpga_arria5_defconfig
+@@ -44,8 +44,7 @@ CONFIG_CMD_EXT4_WRITE=y
+ CONFIG_MTDIDS_DEFAULT="nor0=ff705000.spi.0"
+ CONFIG_MTDPARTS_DEFAULT="mtdparts=ff705000.spi.0:1m(u-boot),256k(env1),256k(env2),14848k(boot),16m(rootfs),-@1536k(UBI)"
+ CONFIG_CMD_UBI=y
+-# CONFIG_ISO_PARTITION is not set
+-# CONFIG_EFI_PARTITION is not set
++# CONFIG_SPL_EFI_PARTITION is not set
+ CONFIG_ENV_IS_IN_MMC=y
+ CONFIG_SYS_RELOC_GD_ENV_ADDR=y
+ CONFIG_VERSION_VARIABLE=y
+diff --git a/configs/socfpga_cyclone5_defconfig b/configs/socfpga_cyclone5_defconfig
+index 97e5fae0f53..ae92bd2feb3 100644
+--- a/configs/socfpga_cyclone5_defconfig
++++ b/configs/socfpga_cyclone5_defconfig
+@@ -44,8 +44,7 @@ CONFIG_CMD_EXT4_WRITE=y
+ CONFIG_MTDIDS_DEFAULT="nor0=ff705000.spi.0"
+ CONFIG_MTDPARTS_DEFAULT="mtdparts=ff705000.spi.0:1m(u-boot),256k(env1),256k(env2),14848k(boot),16m(rootfs),-@1536k(UBI)"
+ CONFIG_CMD_UBI=y
+-# CONFIG_ISO_PARTITION is not set
+-# CONFIG_EFI_PARTITION is not set
++# CONFIG_SPL_EFI_PARTITION is not set
+ CONFIG_ENV_IS_IN_MMC=y
+ CONFIG_SYS_RELOC_GD_ENV_ADDR=y
+ CONFIG_VERSION_VARIABLE=y
+diff --git a/configs/socfpga_de0_nano_soc_defconfig b/configs/socfpga_de0_nano_soc_defconfig
+index 0bcc970728f..a5f8258eaaf 100644
+--- a/configs/socfpga_de0_nano_soc_defconfig
++++ b/configs/socfpga_de0_nano_soc_defconfig
+@@ -46,8 +46,7 @@ CONFIG_CMD_EXT4_WRITE=y
+ CONFIG_MTDIDS_DEFAULT="nor0=ff705000.spi.0"
+ CONFIG_MTDPARTS_DEFAULT="mtdparts=ff705000.spi.0:1m(u-boot),256k(env1),256k(env2),14848k(boot),16m(rootfs),-@1536k(UBI)"
+ CONFIG_CMD_UBI=y
+-# CONFIG_ISO_PARTITION is not set
+-# CONFIG_EFI_PARTITION is not set
++# CONFIG_SPL_EFI_PARTITION is not set
+ CONFIG_ENV_IS_IN_MMC=y
+ CONFIG_SYS_RELOC_GD_ENV_ADDR=y
+ CONFIG_VERSION_VARIABLE=y
+diff --git a/configs/socfpga_de10_nano_defconfig b/configs/socfpga_de10_nano_defconfig
+index 102e781f5c1..2ea0852824b 100644
+--- a/configs/socfpga_de10_nano_defconfig
++++ b/configs/socfpga_de10_nano_defconfig
+@@ -42,8 +42,7 @@ CONFIG_CMD_USB_MASS_STORAGE=y
+ CONFIG_CMD_CACHE=y
+ CONFIG_CMD_EXT4_WRITE=y
+ CONFIG_MTDIDS_DEFAULT="nor0=ff705000.spi.0"
+-# CONFIG_ISO_PARTITION is not set
+-# CONFIG_EFI_PARTITION is not set
++# CONFIG_SPL_EFI_PARTITION is not set
+ CONFIG_ENV_IS_IN_MMC=y
+ CONFIG_SYS_RELOC_GD_ENV_ADDR=y
+ CONFIG_VERSION_VARIABLE=y
+diff --git a/configs/socfpga_de10_standard_defconfig b/configs/socfpga_de10_standard_defconfig
+index fe3eaad12a3..c903d3669e4 100644
+--- a/configs/socfpga_de10_standard_defconfig
++++ b/configs/socfpga_de10_standard_defconfig
+@@ -42,8 +42,7 @@ CONFIG_CMD_USB_MASS_STORAGE=y
+ CONFIG_CMD_CACHE=y
+ CONFIG_CMD_EXT4_WRITE=y
+ CONFIG_MTDIDS_DEFAULT="nor0=ff705000.spi.0"
+-# CONFIG_ISO_PARTITION is not set
+-# CONFIG_EFI_PARTITION is not set
++# CONFIG_SPL_EFI_PARTITION is not set
+ CONFIG_ENV_IS_IN_MMC=y
+ CONFIG_SYS_RELOC_GD_ENV_ADDR=y
+ CONFIG_VERSION_VARIABLE=y
+diff --git a/configs/socfpga_de1_soc_defconfig b/configs/socfpga_de1_soc_defconfig
+index 19e4ab98d59..c1c4b4466d8 100644
+--- a/configs/socfpga_de1_soc_defconfig
++++ b/configs/socfpga_de1_soc_defconfig
+@@ -42,8 +42,7 @@ CONFIG_CMD_CACHE=y
+ CONFIG_CMD_TIME=y
+ CONFIG_CMD_EXT4_WRITE=y
+ CONFIG_MTDIDS_DEFAULT="nor0=ff705000.spi.0"
+-# CONFIG_ISO_PARTITION is not set
+-# CONFIG_EFI_PARTITION is not set
++# CONFIG_SPL_EFI_PARTITION is not set
+ CONFIG_ENV_IS_IN_MMC=y
+ CONFIG_SYS_RELOC_GD_ENV_ADDR=y
+ CONFIG_VERSION_VARIABLE=y
+diff --git a/configs/socfpga_is1_defconfig b/configs/socfpga_is1_defconfig
+index 38286f71f84..523b0f8e09a 100644
+--- a/configs/socfpga_is1_defconfig
++++ b/configs/socfpga_is1_defconfig
+@@ -44,8 +44,7 @@ CONFIG_CMD_EXT4_WRITE=y
+ CONFIG_MTDIDS_DEFAULT="nor0=ff705000.spi.0"
+ CONFIG_MTDPARTS_DEFAULT="mtdparts=ff705000.spi.0:1m(u-boot),256k(env1),256k(env2),14848k(boot),16m(rootfs),-@1536k(UBI)"
+ CONFIG_CMD_UBI=y
+-# CONFIG_ISO_PARTITION is not set
+-# CONFIG_EFI_PARTITION is not set
++# CONFIG_SPL_EFI_PARTITION is not set
+ CONFIG_ENV_IS_IN_SPI_FLASH=y
+ CONFIG_SYS_RELOC_GD_ENV_ADDR=y
+ CONFIG_USE_BOOTFILE=y
+diff --git a/configs/socfpga_mcvevk_defconfig b/configs/socfpga_mcvevk_defconfig
+index f61a63d835a..2e43ef68eba 100644
+--- a/configs/socfpga_mcvevk_defconfig
++++ b/configs/socfpga_mcvevk_defconfig
+@@ -42,8 +42,7 @@ CONFIG_CMD_USB=y
+ CONFIG_CMD_USB_MASS_STORAGE=y
+ CONFIG_CMD_CACHE=y
+ CONFIG_CMD_EXT4_WRITE=y
+-# CONFIG_ISO_PARTITION is not set
+-# CONFIG_EFI_PARTITION is not set
++# CONFIG_SPL_EFI_PARTITION is not set
+ CONFIG_ENV_OVERWRITE=y
+ CONFIG_ENV_IS_IN_MMC=y
+ CONFIG_SYS_RELOC_GD_ENV_ADDR=y
+diff --git a/configs/socfpga_secu1_defconfig b/configs/socfpga_secu1_defconfig
+index f7ae13c891b..e1338cddd0c 100644
+--- a/configs/socfpga_secu1_defconfig
++++ b/configs/socfpga_secu1_defconfig
+@@ -63,8 +63,7 @@ CONFIG_MTDIDS_DEFAULT="nand0=denali-nand"
+ CONFIG_MTDPARTS_DEFAULT="mtdparts=denali-nand:512k(nand.4spl),512k(nand.uboot),128k(nand.env1),128k(nand.env2),0x1000000(nand.rec),0x3ee40000(nand.ubi),0x80000@0x3ff80000(nand.bbt)"
+ CONFIG_CMD_UBI=y
+ # CONFIG_CMD_UBIFS is not set
+-# CONFIG_ISO_PARTITION is not set
+-# CONFIG_EFI_PARTITION is not set
++# CONFIG_SPL_EFI_PARTITION is not set
+ CONFIG_ENV_OVERWRITE=y
+ CONFIG_ENV_IS_IN_NAND=y
+ CONFIG_SYS_REDUNDAND_ENVIRONMENT=y
+diff --git a/configs/socfpga_sockit_defconfig b/configs/socfpga_sockit_defconfig
+index 96ce2485a02..66d29245c18 100644
+--- a/configs/socfpga_sockit_defconfig
++++ b/configs/socfpga_sockit_defconfig
+@@ -44,8 +44,7 @@ CONFIG_CMD_EXT4_WRITE=y
+ CONFIG_MTDIDS_DEFAULT="nor0=ff705000.spi.0"
+ CONFIG_MTDPARTS_DEFAULT="mtdparts=ff705000.spi.0:1m(u-boot),256k(env1),256k(env2),14848k(boot),16m(rootfs),-@1536k(UBI)"
+ CONFIG_CMD_UBI=y
+-# CONFIG_ISO_PARTITION is not set
+-# CONFIG_EFI_PARTITION is not set
++# CONFIG_SPL_EFI_PARTITION is not set
+ CONFIG_ENV_IS_IN_MMC=y
+ CONFIG_SYS_RELOC_GD_ENV_ADDR=y
+ CONFIG_VERSION_VARIABLE=y
+diff --git a/configs/socfpga_socrates_defconfig b/configs/socfpga_socrates_defconfig
+index d14dc86a742..73a11ef5019 100644
+--- a/configs/socfpga_socrates_defconfig
++++ b/configs/socfpga_socrates_defconfig
+@@ -44,8 +44,7 @@ CONFIG_CMD_EXT4_WRITE=y
+ CONFIG_MTDIDS_DEFAULT="nor0=ff705000.spi.0"
+ CONFIG_MTDPARTS_DEFAULT="mtdparts=ff705000.spi.0:1m(u-boot),256k(env1),256k(env2),14848k(boot),16m(rootfs),-@1536k(UBI)"
+ CONFIG_CMD_UBI=y
+-# CONFIG_ISO_PARTITION is not set
+-# CONFIG_EFI_PARTITION is not set
++# CONFIG_SPL_EFI_PARTITION is not set
+ CONFIG_ENV_IS_IN_MMC=y
+ CONFIG_SYS_RELOC_GD_ENV_ADDR=y
+ CONFIG_VERSION_VARIABLE=y
+diff --git a/configs/socfpga_sr1500_defconfig b/configs/socfpga_sr1500_defconfig
+index 820b935b70a..3a5d3478357 100644
+--- a/configs/socfpga_sr1500_defconfig
++++ b/configs/socfpga_sr1500_defconfig
+@@ -51,8 +51,7 @@ CONFIG_CMD_EXT4_WRITE=y
+ CONFIG_MTDIDS_DEFAULT="nor0=ff705000.spi.0"
+ CONFIG_MTDPARTS_DEFAULT="mtdparts=ff705000.spi.0:1m(u-boot),256k(env1),256k(env2),14848k(boot),16m(rootfs),-@1536k(UBI)"
+ CONFIG_CMD_UBI=y
+-# CONFIG_ISO_PARTITION is not set
+-# CONFIG_EFI_PARTITION is not set
++# CONFIG_SPL_EFI_PARTITION is not set
+ CONFIG_ENV_IS_IN_SPI_FLASH=y
+ CONFIG_SYS_REDUNDAND_ENVIRONMENT=y
+ CONFIG_SYS_RELOC_GD_ENV_ADDR=y
+diff --git a/configs/socfpga_vining_fpga_defconfig b/configs/socfpga_vining_fpga_defconfig
+index b4e303ed6dd..37f2b070c7f 100644
+--- a/configs/socfpga_vining_fpga_defconfig
++++ b/configs/socfpga_vining_fpga_defconfig
+@@ -58,8 +58,7 @@ CONFIG_CMD_EXT4_WRITE=y
+ CONFIG_MTDIDS_DEFAULT="nor0=ff705000.spi.0"
+ CONFIG_MTDPARTS_DEFAULT="mtdparts=ff705000.spi.0:1m(u-boot),64k(env1),64k(env2),256k(softing1),256k(softing2),-(rcvrfs);"
+ CONFIG_CMD_UBI=y
+-# CONFIG_ISO_PARTITION is not set
+-# CONFIG_EFI_PARTITION is not set
++# CONFIG_SPL_EFI_PARTITION is not set
+ CONFIG_ENV_IS_IN_SPI_FLASH=y
+ CONFIG_SYS_REDUNDAND_ENVIRONMENT=y
+ CONFIG_SYS_RELOC_GD_ENV_ADDR=y
+-- 
+2.51.0
+

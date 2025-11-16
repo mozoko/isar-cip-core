@@ -1,0 +1,90 @@
+From 2695758ae0f8184f6093086c0f2d4a152273d674 Mon Sep 17 00:00:00 2001
+From: Jan Kiszka <jan.kiszka@siemens.com>
+Date: Fri, 14 Nov 2025 13:40:20 +0100
+Subject: [PATCH 3/6] spl: mmc: Account for
+ SYS_MMCSD_RAW_MODE_U_BOOT_USE_PARTITION_TYPE being a choice
+
+Add SYS_MMCSD_RAW_MODE_U_BOOT_USE_PARTITION_TYPE as condition where so
+far SYS_MMCSD_RAW_MODE_U_BOOT_USE_PARTITION was enough - though often
+by chance as both options were enabled.
+
+We also need to explicitly select SPL_LOAD_BLOCK when UES_PARTITION_TYPE
+is enabled, just like the other choices do.
+
+Fixes: 2a00d73d081a ("spl: mmc: Try to clean up raw-mode options")
+Signed-off-by: Jan Kiszka <jan.kiszka@siemens.com>
+---
+ common/spl/Kconfig   |  1 +
+ common/spl/spl_mmc.c | 16 ++++++++--------
+ include/part.h       |  3 ++-
+ 3 files changed, 11 insertions(+), 9 deletions(-)
+
+diff --git a/common/spl/Kconfig b/common/spl/Kconfig
+index 77cf04d38ed..b757d14fbf1 100644
+--- a/common/spl/Kconfig
++++ b/common/spl/Kconfig
+@@ -563,6 +563,7 @@ config SYS_MMCSD_RAW_MODE_U_BOOT_USE_PARTITION
+ 
+ config SYS_MMCSD_RAW_MODE_U_BOOT_USE_PARTITION_TYPE
+ 	bool "MMC raw mode: by partition type"
++	select SPL_LOAD_BLOCK
+ 	depends on DOS_PARTITION
+ 	help
+ 	  Use partition type for specifying U-Boot partition on MMC/SD in
+diff --git a/common/spl/spl_mmc.c b/common/spl/spl_mmc.c
+index 81415ae7594..34fe362d97e 100644
+--- a/common/spl/spl_mmc.c
++++ b/common/spl/spl_mmc.c
+@@ -107,7 +107,8 @@ static int spl_mmc_find_device(struct mmc **mmcp, int mmc_dev)
+ 	return 0;
+ }
+ 
+-#ifdef CONFIG_SYS_MMCSD_RAW_MODE_U_BOOT_USE_PARTITION
++#if defined(CONFIG_SYS_MMCSD_RAW_MODE_U_BOOT_USE_PARTITION) || \
++    defined(CONFIG_SYS_MMCSD_RAW_MODE_U_BOOT_USE_PARTITION_TYPE)
+ static int mmc_load_image_raw_partition(struct spl_image_info *spl_image,
+ 					struct spl_boot_device *bootdev,
+ 					struct mmc *mmc, int partition,
+@@ -392,19 +393,18 @@ int spl_mmc_load(struct spl_image_info *spl_image,
+ 
+ 		raw_sect = spl_mmc_get_uboot_raw_sector(mmc, raw_sect);
+ 
+-#ifdef CONFIG_SYS_MMCSD_RAW_MODE_U_BOOT_USE_PARTITION
+-		ret = mmc_load_image_raw_partition(spl_image, bootdev,
+-						   mmc, raw_part,
+-						   raw_sect);
+-		if (!ret)
+-			return 0;
+-#endif
+ #ifdef CONFIG_SYS_MMCSD_RAW_MODE_U_BOOT_USE_SECTOR
+ 		ret = mmc_load_image_raw_sector(spl_image, bootdev, mmc,
+ 						raw_sect +
+ 						spl_mmc_raw_uboot_offset(part));
+ 		if (!ret)
+ 			return 0;
++#else
++		ret = mmc_load_image_raw_partition(spl_image, bootdev,
++						   mmc, raw_part,
++						   raw_sect);
++		if (!ret)
++			return 0;
+ #endif
+ 		/* If RAW mode fails, try FS mode. */
+ 		fallthrough;
+diff --git a/include/part.h b/include/part.h
+index fcb3c13dea4..6d16bf7ff85 100644
+--- a/include/part.h
++++ b/include/part.h
+@@ -443,7 +443,8 @@ ulong disk_blk_erase(struct udevice *dev, lbaint_t start, lbaint_t blkcnt);
+ #ifdef CONFIG_XPL_BUILD
+ # define part_print_ptr(x)	NULL
+ # if defined(CONFIG_SPL_FS_EXT4) || defined(CONFIG_SPL_FS_FAT) || \
+-	defined(CONFIG_SYS_MMCSD_RAW_MODE_U_BOOT_PARTITION)
++	defined(CONFIG_SYS_MMCSD_RAW_MODE_U_BOOT_USE_PARTITION) || \
++	defined(CONFIG_SYS_MMCSD_RAW_MODE_U_BOOT_USE_PARTITION_TYPE)
+ #  define part_get_info_ptr(x)	x
+ # else
+ #  define part_get_info_ptr(x)	NULL
+-- 
+2.51.0
+

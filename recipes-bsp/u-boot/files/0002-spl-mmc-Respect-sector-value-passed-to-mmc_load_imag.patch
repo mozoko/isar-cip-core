@@ -1,0 +1,39 @@
+From 27441e4cad3bcb2fd0c83c85f29a71e68f5a8c2d Mon Sep 17 00:00:00 2001
+From: Jan Kiszka <jan.kiszka@siemens.com>
+Date: Fri, 14 Nov 2025 13:34:48 +0100
+Subject: [PATCH 2/6] spl: mmc: Respect sector value passed to
+ mmc_load_image_raw_partition
+
+This function and the sector parameter evolved over the time. By now,
+sector is influenced by spl_mmc_get_uboot_raw_sector which allows to
+adjust the read sector with an offset that U-Boot proper may have inside
+the partition. That used to work by chance if both
+CONFIG_SYS_MMCSD_RAW_MODE_U_BOOT_USE_SECTOR and
+CONFIG_SYS_MMCSD_RAW_MODE_U_BOOT_USE_PARTITION were enabled. Since
+2a00d73d081a they are a choice, and we need to drop the condition to
+maintain this feature.
+
+Signed-off-by: Jan Kiszka <jan.kiszka@siemens.com>
+---
+ common/spl/spl_mmc.c | 4 ----
+ 1 file changed, 4 deletions(-)
+
+diff --git a/common/spl/spl_mmc.c b/common/spl/spl_mmc.c
+index d06f9f0dee6..81415ae7594 100644
+--- a/common/spl/spl_mmc.c
++++ b/common/spl/spl_mmc.c
+@@ -137,11 +137,7 @@ static int mmc_load_image_raw_partition(struct spl_image_info *spl_image,
+ 		return ret;
+ 	}
+ 
+-#ifdef CONFIG_SYS_MMCSD_RAW_MODE_U_BOOT_USE_SECTOR
+ 	return mmc_load_image_raw_sector(spl_image, bootdev, mmc, info.start + sector);
+-#else
+-	return mmc_load_image_raw_sector(spl_image, bootdev, mmc, info.start);
+-#endif
+ }
+ #endif
+ 
+-- 
+2.51.0
+
