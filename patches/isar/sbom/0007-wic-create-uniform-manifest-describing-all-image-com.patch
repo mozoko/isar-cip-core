@@ -1,0 +1,35 @@
+From 4ef2d2ab6718ca8d85f06ef2cbf47e55060062af Mon Sep 17 00:00:00 2001
+From: Felix Moessbauer <felix.moessbauer@siemens.com>
+Date: Mon, 17 Nov 2025 14:24:33 +0100
+Subject: [PATCH 07/10] wic: create uniform manifest describing all image
+ components
+
+A wic image consists of potentially many different components. All these
+should be covered by a single BOM.
+
+After creating the wic image, we collect the individual manifest files
+(rootfs, initrd, imaging), deduplicate it and deploy it into the image
+deploy dir (as .wic.manifest).
+
+Signed-off-by: Felix Moessbauer <felix.moessbauer@siemens.com>
+---
+ meta/classes/imagetypes_wic.bbclass | 5 +++++
+ 1 file changed, 5 insertions(+)
+
+diff --git a/meta/classes/imagetypes_wic.bbclass b/meta/classes/imagetypes_wic.bbclass
+index fb0b81a9..c75d481d 100644
+--- a/meta/classes/imagetypes_wic.bbclass
++++ b/meta/classes/imagetypes_wic.bbclass
+@@ -196,4 +196,9 @@ EOIMAGER
+     sudo chown -R $(stat -c "%U" ${LAYERDIR_core}) ${LAYERDIR_core} ${LAYERDIR_isar} ${SCRIPTSDIR} || true
+     sudo chown -R $(id -u):$(id -g) "${DEPLOY_DIR_IMAGE}/${IMAGE_FULLNAME}.wic"*
+     rm -rf ${IMAGE_ROOTFS}/../pseudo
++
++    cat ${DEPLOY_DIR_IMAGE}/${IMAGE_FULLNAME}.manifest \
++        ${DEPLOY_DIR_IMAGE}/${INITRD_DEPLOY_FILE}.manifest \
++        ${WORKDIR}/imager.manifest 2>/dev/null \
++        | sort | uniq > "${DEPLOY_DIR_IMAGE}/${IMAGE_FULLNAME}.wic.manifest"
+ }
+-- 
+2.51.2
+

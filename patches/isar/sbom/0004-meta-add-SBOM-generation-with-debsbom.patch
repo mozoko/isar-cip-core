@@ -1,0 +1,230 @@
+From aecaa8f2a7ada6092fe737543d75506434e9068e Mon Sep 17 00:00:00 2001
+From: Christoph Steiger <christoph.steiger@siemens.com>
+Date: Mon, 17 Nov 2025 14:24:30 +0100
+Subject: [PATCH 04/10] meta: add SBOM generation with debsbom
+
+Generate SBOMs for every rootfs that is created. These SBOMs are placed
+in the image deploy directory.
+
+For the generation a small chroot with debsbom installed is created and
+from that the rootfs of the image is scanned.
+
+The sbom generation is bound to the rootfs feature `generate-sbom`
+which is activated per default now.
+
+Signed-off-by: Christoph Steiger <christoph.steiger@siemens.com>
+Signed-off-by: Felix Moessbauer <felix.moessbauer@siemens.com>
+---
+ meta/classes/image.bbclass                    |  1 +
+ meta/classes/initramfs.bbclass                |  3 +-
+ meta/classes/rootfs.bbclass                   | 14 +++-
+ meta/classes/sbom.bbclass                     | 64 +++++++++++++++++++
+ meta/classes/sdk.bbclass                      |  2 +-
+ .../sbom-chroot/sbom-chroot.bb                | 30 +++++++++
+ 6 files changed, 111 insertions(+), 3 deletions(-)
+ create mode 100644 meta/classes/sbom.bbclass
+ create mode 100644 meta/recipes-devtools/sbom-chroot/sbom-chroot.bb
+
+diff --git a/meta/classes/image.bbclass b/meta/classes/image.bbclass
+index 1fa71c17..29324920 100644
+--- a/meta/classes/image.bbclass
++++ b/meta/classes/image.bbclass
+@@ -99,6 +99,7 @@ ROOTFS_FEATURES += "\
+     clean-log-files \
+     clean-debconf-cache \
+     populate-systemd-preset \
++    generate-sbom \
+     "
+ ROOTFS_PACKAGES += "${IMAGE_PREINSTALL} ${@isar_multiarch_packages('IMAGE_INSTALL', d)}"
+ ROOTFS_MANIFEST_DEPLOY_DIR ?= "${DEPLOY_DIR_IMAGE}"
+diff --git a/meta/classes/initramfs.bbclass b/meta/classes/initramfs.bbclass
+index 862bd873..570780e1 100644
+--- a/meta/classes/initramfs.bbclass
++++ b/meta/classes/initramfs.bbclass
+@@ -22,11 +22,12 @@ INITRAMFS_FULLNAME = "${PN}-${DISTRO}-${MACHINE}"
+ # Bill-of-material
+ ROOTFS_MANIFEST_DEPLOY_DIR = "${DEPLOY_DIR_IMAGE}"
+ ROOTFS_PACKAGE_SUFFIX = "${INITRAMFS_FULLNAME}"
++SBOM_DISTRO_NAME:append = "-initramfs"
+ 
+ DEPENDS += "${INITRAMFS_INSTALL}"
+ 
+ ROOTFSDIR = "${INITRAMFS_ROOTFS}"
+-ROOTFS_FEATURES = "generate-manifest"
++ROOTFS_FEATURES = "generate-manifest generate-sbom"
+ ROOTFS_PACKAGES = "${INITRAMFS_GENERATOR_PKG} ${INITRAMFS_PREINSTALL} ${INITRAMFS_INSTALL}"
+ 
+ # validate if have incompatible packages in the installation list
+diff --git a/meta/classes/rootfs.bbclass b/meta/classes/rootfs.bbclass
+index c045bfc0..b3ca9e16 100644
+--- a/meta/classes/rootfs.bbclass
++++ b/meta/classes/rootfs.bbclass
+@@ -3,6 +3,8 @@
+ 
+ inherit deb-dl-dir
+ 
++inherit sbom
++
+ ROOTFS_ARCH ?= "${DISTRO_ARCH}"
+ ROOTFS_DISTRO ?= "${DISTRO}"
+ 
+@@ -28,11 +30,18 @@ INITRD_IMAGE ?= ""
+ # available features are:
+ # 'clean-package-cache' - delete package cache from rootfs
+ # 'generate-manifest' - generate a package manifest of the rootfs into ${ROOTFS_MANIFEST_DEPLOY_DIR}
++# 'generate-sbom' - generate a SBOM of the rootfs into ${DEPLOY_DIR_SBOM}
+ # 'export-dpkg-status' - exports /var/lib/dpkg/status file to ${ROOTFS_DPKGSTATUS_DEPLOY_DIR}
+ # 'clean-log-files' - delete log files that are not owned by packages
+ # 'populate-systemd-preset' - enable systemd units according to systemd presets
++
+ # 'generate-initrd' - generate debian default initrd
+ ROOTFS_FEATURES += "${@ 'generate-initrd' if d.getVar('INITRD_IMAGE') == '' else ''}"
++# only supported from bookworm / jammy on
++ROOTFS_FEATURES:remove:buster = "generate-sbom"
++ROOTFS_FEATURES:remove:bullseye = "generate-sbom"
++ROOTFS_FEATURES:remove:jammy = "generate-sbom"
++ROOTFS_FEATURES:remove:focal = "generate-sbom"
+ 
+ ROOTFS_APT_ARGS="install --yes -o Debug::pkgProblemResolver=yes"
+ 
+@@ -478,6 +487,9 @@ cache_dbg_pkgs() {
+     fi
+ }
+ 
++# The sbom generator needs the apt-cache, hence run before cleaning it
++ROOTFS_POSTPROCESS_COMMAND += "${@bb.utils.contains('ROOTFS_FEATURES', 'generate-sbom', 'do_generate_sbom', '', d)}"
++
+ ROOTFS_POSTPROCESS_COMMAND += "${@bb.utils.contains('ROOTFS_FEATURES', 'clean-package-cache', 'rootfs_postprocess_clean_package_cache', '', d)}"
+ rootfs_postprocess_clean_package_cache() {
+     sudo -E chroot '${ROOTFSDIR}' \
+@@ -647,7 +659,7 @@ python do_rootfs() {
+ }
+ addtask rootfs before do_build
+ 
+-do_rootfs_postprocess[depends] = "base-apt:do_cache isar-apt:do_cache_config"
++do_rootfs_postprocess[depends] = "base-apt:do_cache isar-apt:do_cache_config ${@bb.utils.contains('ROOTFS_FEATURES', 'generate-sbom', 'sbom-chroot:do_sbomchroot_deploy', '', d)}"
+ 
+ SSTATETASKS += "do_rootfs_install"
+ SSTATECREATEFUNCS += "rootfs_install_sstate_prepare"
+diff --git a/meta/classes/sbom.bbclass b/meta/classes/sbom.bbclass
+new file mode 100644
+index 00000000..fd41296c
+--- /dev/null
++++ b/meta/classes/sbom.bbclass
+@@ -0,0 +1,64 @@
++# This software is a part of ISAR.
++# Copyright (C) 2025 Siemens
++#
++# SPDX-License-Identifier: MIT
++
++# sbom type to generate, accepted are "cdx" or "spdx"
++SBOM_TYPES ?= "spdx cdx"
++
++SBOM_DEBSBOM_TYPE_ARGS = "${@"-t " + " -t ".join(d.getVar("SBOM_TYPES").split())}"
++
++# general user variables
++SBOM_DISTRO_SUPPLIER ?= "ISAR"
++SBOM_DISTRO_NAME ?= "ISAR-Debian-GNU-Linux"
++SBOM_DISTRO_VERSION ?= "1"
++SBOM_DISTRO_SUMMARY ?= "Linux distribution built with ISAR"
++SBOM_BASE_DISTRO_VENDOR ??= "debian"
++SBOM_DOCUMENT_UUID ?= ""
++
++# SPDX specific user variables
++SBOM_SPDX_NAMESPACE_PREFIX ?= "https://spdx.org/spdxdocs"
++
++DEPLOY_DIR_SBOM = "${DEPLOY_DIR_IMAGE}"
++
++SBOM_DIR = "${DEPLOY_DIR}/sbom"
++SBOM_CHROOT = "${SBOM_DIR}/sbom-chroot"
++
++# adapted from the isar-cip-core image_uuid.bbclass
++def generate_document_uuid(d, warn_not_repr=True):
++    import uuid
++
++    base_hash = d.getVar("BB_TASKHASH")
++    if base_hash is None:
++        if warn_not_repr:
++            bb.warn("no BB_TASKHASH available, SBOM UUID is not reproducible")
++        return uuid.uuid4()
++    return str(uuid.UUID(base_hash[:32], version=4))
++
++def sbom_doc_uuid(d):
++    if not d.getVar("SBOM_DOCUMENT_UUID"):
++        d.setVar("SBOM_DOCUMENT_UUID", generate_document_uuid(d))
++
++generate_sbom() {
++    sudo mkdir -p ${SBOM_CHROOT}/mnt/rootfs ${SBOM_CHROOT}/mnt/deploy-dir
++
++    TIMESTAMP=$(date --iso-8601=s -d @${SOURCE_DATE_EPOCH})
++    bwrap \
++        --unshare-user \
++        --unshare-pid \
++        --bind ${SBOM_CHROOT} / \
++        --bind ${ROOTFSDIR} /mnt/rootfs \
++        --bind ${DEPLOY_DIR_SBOM} /mnt/deploy-dir \
++        -- debsbom -v generate ${SBOM_DEBSBOM_TYPE_ARGS} -r /mnt/rootfs -o /mnt/deploy-dir/'${PN}-${DISTRO}-${MACHINE}' \
++            --distro-name '${SBOM_DISTRO_NAME}' --distro-supplier '${SBOM_DISTRO_SUPPLIER}' \
++            --distro-version '${SBOM_DISTRO_VERSION}' --distro-arch '${DISTRO_ARCH}' \
++            --base-distro-vendor '${SBOM_BASE_DISTRO_VENDOR}' \
++            --cdx-serialnumber '${SBOM_DOCUMENT_UUID}' \
++            --spdx-namespace '${SBOM_SPDX_NAMESPACE_PREFIX}'-'${SBOM_DOCUMENT_UUID}' \
++            --timestamp $TIMESTAMP
++}
++
++python do_generate_sbom() {
++    sbom_doc_uuid(d)
++    bb.build.exec_func("generate_sbom", d)
++}
+diff --git a/meta/classes/sdk.bbclass b/meta/classes/sdk.bbclass
+index 00cae0da..d57269e5 100644
+--- a/meta/classes/sdk.bbclass
++++ b/meta/classes/sdk.bbclass
+@@ -47,7 +47,7 @@ SDK_PREINSTALL += " \
+ ROOTFS_ARCH:class-sdk = "${HOST_ARCH}"
+ ROOTFS_DISTRO:class-sdk = "${@get_rootfs_distro(d)}"
+ ROOTFS_PACKAGES:class-sdk = "sdk-files ${SDK_TOOLCHAIN} ${SDK_PREINSTALL} ${@isar_multiarch_packages('SDK_INSTALL', d)}"
+-ROOTFS_FEATURES:append:class-sdk = " clean-package-cache generate-manifest export-dpkg-status"
++ROOTFS_FEATURES:append:class-sdk = " clean-package-cache generate-manifest export-dpkg-status generate-sbom"
+ ROOTFS_MANIFEST_DEPLOY_DIR:class-sdk = "${DEPLOY_DIR_SDKCHROOT}"
+ ROOTFS_DPKGSTATUS_DEPLOY_DIR:class-sdk = "${DEPLOY_DIR_SDKCHROOT}"
+ 
+diff --git a/meta/recipes-devtools/sbom-chroot/sbom-chroot.bb b/meta/recipes-devtools/sbom-chroot/sbom-chroot.bb
+new file mode 100644
+index 00000000..58200382
+--- /dev/null
++++ b/meta/recipes-devtools/sbom-chroot/sbom-chroot.bb
+@@ -0,0 +1,30 @@
++# This software is a part of ISAR.
++#
++# Copyright (C) 2025 Siemens
++
++LICENSE = "gpl-2.0"
++LIC_FILES_CHKSUM = "file://${LAYERDIR_core}/licenses/COPYING.GPLv2;md5=751419260aa954499f7abaabaa882bbe"
++
++PV = "1.0"
++
++inherit rootfs
++
++ROOTFS_ARCH = "${HOST_ARCH}"
++ROOTFS_DISTRO = "${@get_rootfs_distro(d)}"
++ROOTFS_BASE_DISTRO = "${HOST_BASE_DISTRO}"
++
++ROOTFS_FEATURES = "no-generate-initrd"
++ROOTFS_INSTALL_COMMAND:remove = "rootfs_restore_initrd_tooling"
++
++# additional packages for the SBOM chroot
++SBOM_IMAGE_INSTALL = "python3-debsbom"
++DEPENDS += "python3-debsbom"
++
++ROOTFSDIR = "${WORKDIR}/rootfs"
++ROOTFS_PACKAGES = "${SBOM_IMAGE_INSTALL}"
++
++do_sbomchroot_deploy[dirs] = "${SBOM_DIR}"
++do_sbomchroot_deploy() {
++    ln -Tfsr "${ROOTFSDIR}" "${SBOM_CHROOT}"
++}
++addtask do_sbomchroot_deploy before do_build after do_rootfs
+-- 
+2.51.2
+

@@ -1,0 +1,10 @@
+0001-refactor-move-get_rootfs_distro-from-sdk-into-rootfs.patch
+0002-meta-package-python-libraries-for-SBOM-generation.patch
+0003-meta-package-python3-debsbom.patch
+0004-meta-add-SBOM-generation-with-debsbom.patch
+0005-override-distro-vendor-in-SBOM-on-Ubuntu.patch
+0006-add-support-to-add-imager-dependencies-to-BOM.patch
+0007-wic-create-uniform-manifest-describing-all-image-com.patch
+0008-qemuamd64-add-IMAGER_BOM-entries.patch
+0009-imager-create-SBOM-of-IMAGER_BOM-packages.patch
+0010-wic-create-uniform-SBOM-describing-all-image-compone.patch

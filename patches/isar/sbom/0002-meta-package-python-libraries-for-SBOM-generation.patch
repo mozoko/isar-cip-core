@@ -1,0 +1,357 @@
+From 86682e3cd766a3d974a60897de57f02a46a0285b Mon Sep 17 00:00:00 2001
+From: Christoph Steiger <christoph.steiger@siemens.com>
+Date: Mon, 17 Nov 2025 14:24:28 +0100
+Subject: [PATCH 02/10] meta: package python libraries for SBOM generation
+
+Package python libraries for SBOM generation in isar. The packages are
+unfortunately not (yet) packaged in Debian, thats why we need to do it
+here. With these libraries it is now possible to easily create CDX and
+SPDX SBOMs in different file formats.
+
+Signed-off-by: Christoph Steiger <christoph.steiger@siemens.com>
+---
+ .../python3-beartype/files/rules              |  8 ++++
+ .../python3-beartype_0.19.0.bb                | 29 +++++++++++
+ .../files/pybuild.testfiles                   |  1 +
+ .../python3-cyclonedx-lib/files/rules         |  8 ++++
+ .../python3-cyclonedx-lib_9.1.0.bb            | 48 +++++++++++++++++++
+ .../python3-packageurl/files/rules            |  8 ++++
+ .../python3-packageurl_0.16.0.bb              | 33 +++++++++++++
+ .../python3-py-serializable/files/rules       |  8 ++++
+ .../python3-py-serializable_2.0.0.bb          | 38 +++++++++++++++
+ .../python3-spdx-tools/files/rules            | 25 ++++++++++
+ .../python3-spdx-tools_0.8.3.bb               | 46 ++++++++++++++++++
+ 11 files changed, 252 insertions(+)
+ create mode 100644 meta/recipes-support/python3-beartype/files/rules
+ create mode 100644 meta/recipes-support/python3-beartype/python3-beartype_0.19.0.bb
+ create mode 100644 meta/recipes-support/python3-cyclonedx-lib/files/pybuild.testfiles
+ create mode 100644 meta/recipes-support/python3-cyclonedx-lib/files/rules
+ create mode 100644 meta/recipes-support/python3-cyclonedx-lib/python3-cyclonedx-lib_9.1.0.bb
+ create mode 100644 meta/recipes-support/python3-packageurl/files/rules
+ create mode 100644 meta/recipes-support/python3-packageurl/python3-packageurl_0.16.0.bb
+ create mode 100644 meta/recipes-support/python3-py-serializable/files/rules
+ create mode 100644 meta/recipes-support/python3-py-serializable/python3-py-serializable_2.0.0.bb
+ create mode 100644 meta/recipes-support/python3-spdx-tools/files/rules
+ create mode 100644 meta/recipes-support/python3-spdx-tools/python3-spdx-tools_0.8.3.bb
+
+diff --git a/meta/recipes-support/python3-beartype/files/rules b/meta/recipes-support/python3-beartype/files/rules
+new file mode 100644
+index 00000000..0ca517a1
+--- /dev/null
++++ b/meta/recipes-support/python3-beartype/files/rules
+@@ -0,0 +1,8 @@
++#!/usr/bin/make -f
++
++#export DH_VERBOSE = 1
++export PYBUILD_NAME = beartype
++export PYBUILD_SYSTEM = pyproject
++
++%:
++	dh $@ --with python3 --buildsystem=pybuild
+diff --git a/meta/recipes-support/python3-beartype/python3-beartype_0.19.0.bb b/meta/recipes-support/python3-beartype/python3-beartype_0.19.0.bb
+new file mode 100644
+index 00000000..b8bc2708
+--- /dev/null
++++ b/meta/recipes-support/python3-beartype/python3-beartype_0.19.0.bb
+@@ -0,0 +1,29 @@
++# This software is a part of ISAR.
++# Copyright (c) Siemens, 2025
++#
++# SPDX-License-Identifier: MIT
++
++inherit dpkg
++
++FILESEXTRAPATHS:prepend := "${THISDIR}/files:"
++
++S = "${WORKDIR}/beartype-${PV}"
++
++MAINTAINER = "Christoph Steiger <christoph.steiger@siemens.com>"
++DPKG_ARCH = "all"
++DEBIAN_BUILD_DEPENDS = "debhelper (>= 11~), dh-python, python3-all, python3-setuptools, pybuild-plugin-pyproject, python3-hatchling"
++DEBIAN_DEPENDS = "\${python3:Depends}, \${misc:Depends}"
++# this is 01/01/1980, any earlier and zip in the wheel building process will not accept it
++DEBIAN_CHANGELOG_TIMESTAMP = "315532800"
++DESCRIPTION = "Unbearably fast near-real-time hybrid runtime-static type-checking in pure Python."
++
++SRC_URI = "\
++    https://github.com/beartype/beartype/archive/refs/tags/v0.19.0.tar.gz \
++    file://rules \
++    "
++SRC_URI[sha256sum] = "e7ad00eebf527d60f30e0b391209b561dabd2074b608c50e26c94c2d8250a6cd"
++
++do_prepare_build[cleandirs] += "${S}/debian"
++do_prepare_build() {
++    deb_debianize
++}
+diff --git a/meta/recipes-support/python3-cyclonedx-lib/files/pybuild.testfiles b/meta/recipes-support/python3-cyclonedx-lib/files/pybuild.testfiles
+new file mode 100644
+index 00000000..cc736a36
+--- /dev/null
++++ b/meta/recipes-support/python3-cyclonedx-lib/files/pybuild.testfiles
+@@ -0,0 +1 @@
++pyproject.toml
+diff --git a/meta/recipes-support/python3-cyclonedx-lib/files/rules b/meta/recipes-support/python3-cyclonedx-lib/files/rules
+new file mode 100644
+index 00000000..fe72dd1a
+--- /dev/null
++++ b/meta/recipes-support/python3-cyclonedx-lib/files/rules
+@@ -0,0 +1,8 @@
++#!/usr/bin/make -f
++
++#export DH_VERBOSE = 1
++export PYBUILD_NAME = cyclonedx-python-lib
++export PYBUILD_SYSTEM = pyproject
++
++%:
++	dh $@ --with python3 --buildsystem=pybuild
+diff --git a/meta/recipes-support/python3-cyclonedx-lib/python3-cyclonedx-lib_9.1.0.bb b/meta/recipes-support/python3-cyclonedx-lib/python3-cyclonedx-lib_9.1.0.bb
+new file mode 100644
+index 00000000..738ed1b3
+--- /dev/null
++++ b/meta/recipes-support/python3-cyclonedx-lib/python3-cyclonedx-lib_9.1.0.bb
+@@ -0,0 +1,48 @@
++# This software is a part of ISAR.
++# Copyright (c) Siemens, 2025
++#
++# SPDX-License-Identifier: MIT
++
++inherit dpkg
++
++FILESEXTRAPATHS:prepend := "${THISDIR}/files:"
++
++DEPENDS:append:bookworm = " python3-packageurl python3-py-serializable"
++DEPENDS:append:noble = " python3-packageurl python3-py-serializable"
++
++S = "${WORKDIR}/cyclonedx_python_lib-${PV}"
++
++MAINTAINER = "Christoph Steiger <christoph.steiger@siemens.com>"
++DPKG_ARCH = "all"
++DEBIAN_BUILD_DEPENDS = "debhelper (>= 11~), \
++                        dh-python, \
++                        python3-all, \
++                        python3-setuptools, \
++                        pybuild-plugin-pyproject, \
++                        python3-poetry, \
++                        python3-py-serializable, \
++                        python3-packageurl, \
++                        python3-sortedcontainers, \
++                        python3-ddt, \
++                        python3-defusedxml, \
++                        python3-license-expression, \
++                        python3-jsonschema, \
++                        python3-lxml, \
++                        "
++
++DEBIAN_DEPENDS = "\${python3:Depends}, \${misc:Depends}"
++
++DESCRIPTION = "Library for serializing and deserializing Python Objects to and from JSON and XML."
++
++SRC_URI = "\
++    https://github.com/CycloneDX/cyclonedx-python-lib/releases/download/v9.1.0/cyclonedx_python_lib-9.1.0.tar.gz \
++    file://rules \
++    file://pybuild.testfiles \
++    "
++SRC_URI[sha256sum] = "86935f2c88a7b47a529b93c724dbd3e903bc573f6f8bd977628a7ca1b5dadea1"
++
++do_prepare_build[cleandirs] += "${S}/debian"
++do_prepare_build() {
++    cp "${WORKDIR}"/pybuild.testfiles "${S}"/debian
++    deb_debianize
++}
+diff --git a/meta/recipes-support/python3-packageurl/files/rules b/meta/recipes-support/python3-packageurl/files/rules
+new file mode 100644
+index 00000000..50e1b74c
+--- /dev/null
++++ b/meta/recipes-support/python3-packageurl/files/rules
+@@ -0,0 +1,8 @@
++#!/usr/bin/make -f
++
++#export DH_VERBOSE = 1
++export PYBUILD_NAME = packageurl-python
++export PYBUILD_SYSTEM = distutils
++
++%:
++	dh $@ --with python3 --buildsystem=pybuild
+diff --git a/meta/recipes-support/python3-packageurl/python3-packageurl_0.16.0.bb b/meta/recipes-support/python3-packageurl/python3-packageurl_0.16.0.bb
+new file mode 100644
+index 00000000..27209429
+--- /dev/null
++++ b/meta/recipes-support/python3-packageurl/python3-packageurl_0.16.0.bb
+@@ -0,0 +1,33 @@
++# This software is a part of ISAR.
++# Copyright (c) Siemens, 2025
++#
++# SPDX-License-Identifier: MIT
++
++inherit dpkg
++
++FILESEXTRAPATHS:prepend := "${THISDIR}/files:"
++
++S = "${WORKDIR}/packageurl_python-${PV}"
++
++MAINTAINER = "Christoph Steiger <christoph.steiger@siemens.com>"
++DPKG_ARCH = "all"
++DEBIAN_BUILD_DEPENDS = "debhelper (>= 11~), \
++                        dh-python, \
++                        python3-all, \
++                        python3-setuptools, \
++                        "
++
++DEBIAN_DEPENDS = "\${python3:Depends}, \${misc:Depends}"
++
++DESCRIPTION = "A purl aka. Package URL parser and builder"
++
++SRC_URI = "\
++    https://github.com/package-url/packageurl-python/releases/download/v0.16.0/packageurl_python-0.16.0.tar.gz \
++    file://rules \
++    "
++SRC_URI[sha256sum] = "69e3bf8a3932fe9c2400f56aaeb9f86911ecee2f9398dbe1b58ec34340be365d"
++
++do_prepare_build[cleandirs] += "${S}/debian"
++do_prepare_build() {
++    deb_debianize
++}
+diff --git a/meta/recipes-support/python3-py-serializable/files/rules b/meta/recipes-support/python3-py-serializable/files/rules
+new file mode 100644
+index 00000000..0cf845dd
+--- /dev/null
++++ b/meta/recipes-support/python3-py-serializable/files/rules
+@@ -0,0 +1,8 @@
++#!/usr/bin/make -f
++
++#export DH_VERBOSE = 1
++export PYBUILD_NAME = py-serializable
++export PYBUILD_SYSTEM = pyproject
++
++%:
++	dh $@ --with python3 --buildsystem=pybuild
+diff --git a/meta/recipes-support/python3-py-serializable/python3-py-serializable_2.0.0.bb b/meta/recipes-support/python3-py-serializable/python3-py-serializable_2.0.0.bb
+new file mode 100644
+index 00000000..5bc48c0f
+--- /dev/null
++++ b/meta/recipes-support/python3-py-serializable/python3-py-serializable_2.0.0.bb
+@@ -0,0 +1,38 @@
++# This software is a part of ISAR.
++# Copyright (c) Siemens, 2025
++#
++# SPDX-License-Identifier: MIT
++
++inherit dpkg
++
++FILESEXTRAPATHS:prepend := "${THISDIR}/files:"
++
++S = "${WORKDIR}/py_serializable-${PV}"
++
++MAINTAINER = "Christoph Steiger <christoph.steiger@siemens.com>"
++DPKG_ARCH = "all"
++DEBIAN_BUILD_DEPENDS = " \
++    dh-sequence-python3, \
++    pybuild-plugin-pyproject, \
++    python3-all, \
++    python3-defusedxml, \
++    python3-lxml, \
++    python3-poetry-core, \
++    python3-setuptools, \
++    xmldiff, \
++"
++
++DEBIAN_DEPENDS = "\${python3:Depends}, \${misc:Depends}"
++
++DESCRIPTION = "Library for serializing and deserializing Python Objects to and from JSON and XML."
++
++SRC_URI = "\
++    https://github.com/madpah/serializable/releases/download/v2.0.0/py_serializable-2.0.0.tar.gz \
++    file://rules \
++    "
++SRC_URI[sha256sum] = "e9e6491dd7d29c31daf1050232b57f9657f9e8a43b867cca1ff204752cf420a5"
++
++do_prepare_build[cleandirs] += "${S}/debian"
++do_prepare_build() {
++    deb_debianize
++}
+diff --git a/meta/recipes-support/python3-spdx-tools/files/rules b/meta/recipes-support/python3-spdx-tools/files/rules
+new file mode 100644
+index 00000000..ac87528a
+--- /dev/null
++++ b/meta/recipes-support/python3-spdx-tools/files/rules
+@@ -0,0 +1,25 @@
++#!/usr/bin/make -f
++
++#export DH_VERBOSE = 1
++export PYBUILD_NAME = spdx-tools
++export PYBUILD_SYSTEM = distutils
++
++# skip tests that require hard-to-package dependencies and tests that rely on relative file paths
++# TODO: figure out a way to make these tests work
++export PYBUILD_TEST_ARGS=--ignore tests/spdx3/validation/json_ld/test_shacl_validation.py \
++	-k 'not test_examples \
++	and not test_parse_from_file \
++	and not test_annotation_parser \
++	and not test_snippet_parser \
++	and not test_creation_info_parser \
++	and not test_json_ld_writer \
++	and not test_extracted_licensing_info_parser \
++	and not test_parse_file \
++	and not test_package_parser \
++	and not test_relationship_parser \
++	and not test_graph_parsing_function \
++	and not test_license_expression_parser \
++	'
++
++%:
++	dh $@ --with python3 --buildsystem=pybuild
+diff --git a/meta/recipes-support/python3-spdx-tools/python3-spdx-tools_0.8.3.bb b/meta/recipes-support/python3-spdx-tools/python3-spdx-tools_0.8.3.bb
+new file mode 100644
+index 00000000..30d090a9
+--- /dev/null
++++ b/meta/recipes-support/python3-spdx-tools/python3-spdx-tools_0.8.3.bb
+@@ -0,0 +1,46 @@
++# This software is a part of ISAR.
++# Copyright (c) Siemens, 2025
++#
++# SPDX-License-Identifier: MIT
++
++inherit dpkg
++
++FILESEXTRAPATHS:prepend := "${THISDIR}/files:"
++
++S = "${WORKDIR}/tools-python-${PV}"
++
++DEPENDS:append:bookworm = " python3-beartype"
++
++MAINTAINER = "Christoph Steiger <christoph.steiger@siemens.com>"
++DPKG_ARCH = "all"
++DEBIAN_BUILD_DEPENDS = "dh-python, \
++                        python3-all, \
++                        python3-setuptools, \
++                        python3-beartype, \
++                        python3-semantic-version, \
++                        python3-license-expression, \
++                        python3-pytest <!nocheck>, \
++                        python3-rdflib, \
++                        python3-uritools, \
++                        python3-ply, \
++                        python3-click, \
++                        python3-xmltodict, \
++                        python3-yaml, \
++                        "
++
++DEBIAN_DEPENDS = "\${python3:Depends}, \${misc:Depends}"
++DEB_BUILD_PROFILES += "nocheck"
++DEB_BUILD_OPTIONS += "nocheck"
++
++DESCRIPTION = "SPDX parser and tools."
++
++SRC_URI = "\
++    https://github.com/spdx/tools-python/archive/refs/tags/v0.8.3.tar.gz \
++    file://rules \
++    "
++SRC_URI[sha256sum] = "17cb0140adbaefb58819c9d5d56060dc6a70c673a854fa9bd882ecfa4e062a7f"
++
++do_prepare_build[cleandirs] += "${S}/debian"
++do_prepare_build() {
++    deb_debianize
++}
+-- 
+2.51.2
+

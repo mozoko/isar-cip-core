@@ -22,9 +22,13 @@ repos:
 
   isar:
     url: https://github.com/ilbers/isar.git
-    commit: 5bb743ad0ae4e87ef5a14ce4897c14694b46d0c5
+    commit: 3f55e8574865de46bb795b60c3c3569567494aa7
     layers:
       meta:
+    patches:
+      1-sbom:
+        path: patches/isar/sbom
+        repo: cip-core
 
 bblayers_conf_header:
   standard: |

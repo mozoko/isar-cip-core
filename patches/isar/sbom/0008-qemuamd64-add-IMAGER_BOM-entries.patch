@@ -1,0 +1,28 @@
+From e7755008810afe484711f3177551d07c19bad714 Mon Sep 17 00:00:00 2001
+From: Felix Moessbauer <felix.moessbauer@siemens.com>
+Date: Mon, 17 Nov 2025 14:24:34 +0100
+Subject: [PATCH 08/10] qemuamd64: add IMAGER_BOM entries
+
+To give an example how to add components to the imager BOM, we set the
+corresponding variable for the qemuamd64 target.
+
+Signed-off-by: Felix Moessbauer <felix.moessbauer@siemens.com>
+---
+ meta-isar/conf/machine/qemuamd64.conf | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/meta-isar/conf/machine/qemuamd64.conf b/meta-isar/conf/machine/qemuamd64.conf
+index 7d5987c6..8d0753a8 100644
+--- a/meta-isar/conf/machine/qemuamd64.conf
++++ b/meta-isar/conf/machine/qemuamd64.conf
+@@ -7,6 +7,7 @@ KERNEL_NAME ?= "amd64"
+ 
+ IMAGE_FSTYPES ?= "wic"
+ WKS_FILE ?= "sdimage-efi"
++IMAGER_BOM:wic += "${GRUB_BOOTLOADER_INSTALL}"
+ IMAGER_INSTALL:wic += "${GRUB_BOOTLOADER_INSTALL}"
+ 
+ QEMU_ARCH ?= "x86_64"
+-- 
+2.51.2
+

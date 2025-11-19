@@ -1,0 +1,26 @@
+From c7e0431323692dad1ed5bebea4d5094f5f68b6bd Mon Sep 17 00:00:00 2001
+From: Felix Moessbauer <felix.moessbauer@siemens.com>
+Date: Mon, 17 Nov 2025 14:24:31 +0100
+Subject: [PATCH 05/10] override distro vendor in SBOM on Ubuntu
+
+When generating an SBOM for Ubuntu, the vendor component of the PURL
+needs to be ubuntu (instead of debian). We now set it accordingly.
+
+Signed-off-by: Felix Moessbauer <felix.moessbauer@siemens.com>
+---
+ meta-isar/conf/distro/ubuntu-common.inc | 2 ++
+ 1 file changed, 2 insertions(+)
+
+diff --git a/meta-isar/conf/distro/ubuntu-common.inc b/meta-isar/conf/distro/ubuntu-common.inc
+index f1e8a1d6..ffc41afe 100644
+--- a/meta-isar/conf/distro/ubuntu-common.inc
++++ b/meta-isar/conf/distro/ubuntu-common.inc
+@@ -45,3 +45,5 @@ SYSTEMD_BOOTLOADER_INSTALL:jammy = "systemd:${DISTRO_ARCH}"
+ 
+ # snapshot mirror for reproducible builds
+ DISTRO_APT_SNAPSHOT_PREMIRROR ??= "(http|https)://archive.ubuntu.com/(.*) https://snapshot.ubuntu.com/\2/${ISAR_APT_SNAPSHOT_DATE_INTERNAL}\n"
++
++SBOM_BASE_DISTRO_VENDOR ?= "ubuntu"
+-- 
+2.51.2
+

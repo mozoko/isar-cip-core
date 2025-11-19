@@ -1,0 +1,94 @@
+From 786e9a5afe6403fb570573057226b61bf6a9b086 Mon Sep 17 00:00:00 2001
+From: Felix Moessbauer <felix.moessbauer@siemens.com>
+Date: Mon, 17 Nov 2025 14:24:32 +0100
+Subject: [PATCH 06/10] add support to add imager dependencies to BOM
+
+Currently the imager dependencies which end up in the image are not
+tracked in any BOM (e.g. the manifest file). As these cannot be
+automatically derived from the IMAGER_INSTALL packages, we add a new
+variable IMAGER_BOM that takes a list of binary packages which are
+looked-up using dpkg-query during imaging and added to a local manifest.
+
+Signed-off-by: Felix Moessbauer <felix.moessbauer@siemens.com>
+---
+ doc/user_manual.md                         | 1 +
+ meta/classes/image-tools-extension.bbclass | 7 +++++++
+ meta/classes/image.bbclass                 | 6 ++++++
+ 3 files changed, 14 insertions(+)
+
+diff --git a/doc/user_manual.md b/doc/user_manual.md
+index efe65a51..46c15b21 100644
+--- a/doc/user_manual.md
++++ b/doc/user_manual.md
+@@ -455,6 +455,7 @@ Some other variables include:
+  - `FILESEXTRAPATHS` - The default directories BitBake uses when it processes recipes are initially defined by the FILESPATH variable. You can extend FILESPATH variable by using FILESEXTRAPATHS.
+  - `FILESOVERRIDES` - A subset of OVERRIDES used by the build system for creating FILESPATH. The FILESOVERRIDES variable uses overrides to automatically extend the FILESPATH variable.
+  - `IMAGER_INSTALL` -  The list of package dependencies for an imager like wic.
++ - `IMAGER_BOM` - The list of packages that should be added to the image BOM (e.g. the bootloader). These packages must also be available in the imager rootfs.
+ 
+ ---
+ 
+diff --git a/meta/classes/image-tools-extension.bbclass b/meta/classes/image-tools-extension.bbclass
+index 3f284b39..2027effb 100644
+--- a/meta/classes/image-tools-extension.bbclass
++++ b/meta/classes/image-tools-extension.bbclass
+@@ -18,6 +18,7 @@ SCHROOT_MOUNTS += "${REPO_ISAR_DIR}/${DISTRO}:/isar-apt"
+ 
+ imager_run() {
+     local_install="${@(d.getVar("INSTALL_%s" % d.getVar("BB_CURRENTTASK")) or '').strip()}"
++    local_bom="${@(d.getVar("BOM_%s" % d.getVar("BB_CURRENTTASK")) or '').strip()}"
+ 
+     schroot_create_configs
+     insert_mounts
+@@ -68,6 +69,12 @@ EOAPT
+ 
+     schroot -r -c ${session_id} "$@"
+ 
++    if [ -n "${local_bom}" ]; then
++        schroot -r -c ${session_id} -d / -- \
++            dpkg-query -W -f='${source:Package}|${source:Version}|${Package}:${Architecture}|${Version}\n' ${local_bom} > \
++        ${WORKDIR}/imager.manifest
++    fi
++
+     schroot -e -c ${session_id}
+ 
+     remove_mounts
+diff --git a/meta/classes/image.bbclass b/meta/classes/image.bbclass
+index 29324920..f3c3ed98 100644
+--- a/meta/classes/image.bbclass
++++ b/meta/classes/image.bbclass
+@@ -216,6 +216,7 @@ python() {
+ 
+     imager_install = set()
+     imager_build_deps = set()
++    imager_bom = set()
+     conversion_install = set()
+     for bt in basetypes:
+         local_imager_install = set()
+@@ -246,6 +247,8 @@ python() {
+             local_imager_install.add(dep)
+         for dep in (d.getVar('IMAGER_BUILD_DEPS:' + bt_clean) or '').split():
+             imager_build_deps.add(dep)
++        for dep in (d.getVar('IMAGER_BOM:' + bt_clean) or '').split():
++            imager_bom.add(dep)
+ 
+         # construct image command
+         image_cmd = localdata.getVar('IMAGE_CMD:' + bt_clean)
+@@ -320,11 +323,14 @@ python() {
+         bb.build.addtask(task, 'do_image', after, d)
+ 
+         # set per type imager dependencies
++        d.setVar('BOM_image_%s' % bt_clean, d.getVar('IMAGER_BOM'))
++        d.appendVar('BOM_image_%s' % bt_clean, ' ' + ' '.join(sorted(imager_bom)))
+         d.setVar('INSTALL_image_%s' % bt_clean, d.getVar('IMAGER_INSTALL'))
+         d.appendVar('INSTALL_image_%s' % bt_clean, ' ' + ' '.join(sorted(local_imager_install | local_conversion_install)))
+         d.appendVarFlag(task, 'vardeps', ' INSTALL_image_%s' % bt_clean)
+ 
+     d.appendVar('IMAGER_INSTALL', ' ' + ' '.join(sorted(imager_install | conversion_install)))
++    d.appendVar('IMAGER_BOM', ' ' + ' '.join(sorted(imager_bom)))
+     d.appendVar('IMAGER_BUILD_DEPS', ' ' + ' '.join(sorted(imager_build_deps)))
+ }
+ 
+-- 
+2.51.2
+

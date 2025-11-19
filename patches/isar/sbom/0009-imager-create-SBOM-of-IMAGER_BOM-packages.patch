@@ -1,0 +1,53 @@
+From d7e137d8560b12a387e138b3422c71941095f6df Mon Sep 17 00:00:00 2001
+From: Felix Moessbauer <felix.moessbauer@siemens.com>
+Date: Mon, 17 Nov 2025 14:24:35 +0100
+Subject: [PATCH 09/10] imager: create SBOM of IMAGER_BOM packages
+
+This uses the same interface as the .manifest file, but adds the
+packagse to an SBOM.
+
+Signed-off-by: Felix Moessbauer <felix.moessbauer@siemens.com>
+---
+ meta/classes/image-tools-extension.bbclass | 22 ++++++++++++++++++++++
+ 1 file changed, 22 insertions(+)
+
+diff --git a/meta/classes/image-tools-extension.bbclass b/meta/classes/image-tools-extension.bbclass
+index 2027effb..95f003d0 100644
+--- a/meta/classes/image-tools-extension.bbclass
++++ b/meta/classes/image-tools-extension.bbclass
+@@ -73,6 +73,8 @@ EOAPT
+         schroot -r -c ${session_id} -d / -- \
+             dpkg-query -W -f='${source:Package}|${source:Version}|${Package}:${Architecture}|${Version}\n' ${local_bom} > \
+         ${WORKDIR}/imager.manifest
++
++        ${@bb.utils.contains('ROOTFS_FEATURES', 'generate-sbom', 'generate_imager_sbom', '', d)}
+     fi
+ 
+     schroot -e -c ${session_id}
+@@ -80,3 +82,23 @@ EOAPT
+     remove_mounts
+     schroot_delete_configs
+ }
++
++generate_imager_sbom() {
++    TIMESTAMP=$(date --iso-8601=s -d @${SOURCE_DATE_EPOCH})
++    sbom_document_uuid="${@d.getVar('SBOM_DOCUMENT_UUID') or generate_document_uuid(d, False)}"
++    bwrap \
++        --unshare-user \
++        --unshare-pid \
++        --bind ${SBOM_CHROOT} / \
++        --bind $schroot_dir /mnt/rootfs \
++        --bind ${WORKDIR} /mnt/deploy-dir \
++        -- debsbom -vv generate ${SBOM_DEBSBOM_TYPE_ARGS} \
++            --from-pkglist -r /mnt/rootfs -o /mnt/deploy-dir/imager \
++            --distro-name '${SBOM_DISTRO_NAME}-Imager' --distro-supplier '${SBOM_DISTRO_SUPPLIER}' \
++            --distro-version '${SBOM_DISTRO_VERSION}' --distro-arch '${DISTRO_ARCH}' \
++            --base-distro-vendor '${SBOM_BASE_DISTRO_VENDOR}' \
++            --cdx-serialnumber $sbom_document_uuid \
++            --spdx-namespace '${SBOM_SPDX_NAMESPACE_PREFIX}'-$sbom_document_uuid \
++            --timestamp $TIMESTAMP \
++    < ${WORKDIR}/imager.manifest
++}
+-- 
+2.51.2
+

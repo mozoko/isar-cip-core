@@ -1,0 +1,58 @@
+From 46561614dd6f28c3bdcc1f0ddf8276ef9dbbf0f5 Mon Sep 17 00:00:00 2001
+From: Felix Moessbauer <felix.moessbauer@siemens.com>
+Date: Mon, 17 Nov 2025 14:24:27 +0100
+Subject: [PATCH 01/10] refactor: move get_rootfs_distro from sdk into rootfs
+
+This helper is rootfs (not sdk) specific and can be re-used to reliably
+compute the distro of a rootfs (also transient ones like the ones used
+by sbuild). As the SDK always is included into a rootfs, we just move it
+there and make it reusable.
+
+Signed-off-by: Felix Moessbauer <felix.moessbauer@siemens.com>
+---
+ meta/classes/rootfs.bbclass | 9 +++++++++
+ meta/classes/sdk.bbclass    | 8 --------
+ 2 files changed, 9 insertions(+), 8 deletions(-)
+
+diff --git a/meta/classes/rootfs.bbclass b/meta/classes/rootfs.bbclass
+index e1179e61..c045bfc0 100644
+--- a/meta/classes/rootfs.bbclass
++++ b/meta/classes/rootfs.bbclass
+@@ -43,6 +43,15 @@ ROOTFS_PACKAGE_SUFFIX ?= "${PN}-${DISTRO}-${DISTRO_ARCH}"
+ # path to deploy stubbed versions of initrd update scripts during do_rootfs_install
+ ROOTFS_STUBS_DIR = "/usr/local/isar-sbin"
+ 
++# helper to compute the rootfs distro also under cross building
++def get_rootfs_distro(d):
++    host_arch = d.getVar('HOST_ARCH')
++    distro_arch = d.getVar('DISTRO_ARCH')
++    if host_arch == distro_arch:
++        return d.getVar('DISTRO')
++    else:
++        return d.getVar('HOST_DISTRO')
++
+ # Useful environment variables:
+ export E = "${@ isar_export_proxies(d)}"
+ export DEBIAN_FRONTEND = "noninteractive"
+diff --git a/meta/classes/sdk.bbclass b/meta/classes/sdk.bbclass
+index 46436d97..00cae0da 100644
+--- a/meta/classes/sdk.bbclass
++++ b/meta/classes/sdk.bbclass
+@@ -43,14 +43,6 @@ SDK_PREINSTALL += " \
+     devscripts \
+     equivs"
+ 
+-def get_rootfs_distro(d):
+-    host_arch = d.getVar('HOST_ARCH')
+-    distro_arch = d.getVar('DISTRO_ARCH')
+-    if host_arch == distro_arch:
+-        return d.getVar('DISTRO')
+-    else:
+-        return d.getVar('HOST_DISTRO')
+-
+ # rootfs/image overrides for the SDK
+ ROOTFS_ARCH:class-sdk = "${HOST_ARCH}"
+ ROOTFS_DISTRO:class-sdk = "${@get_rootfs_distro(d)}"
+-- 
+2.51.2
+
