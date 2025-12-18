@@ -20,11 +20,6 @@ local_conf_header:
     OVERRIDES .= ":swupdate"
 
   wic-swu: |
-    RO_ROOTFS_TYPE ??= "squashfs"
-    IMAGE_TYPEDEP:wic += "${RO_ROOTFS_TYPE}"
-    IMAGE_FSTYPES:append = " swu"
-    # input is already compressed
-    SWU_COMPRESSION_TYPE = ""
     WKS_FILE ?= "${MACHINE}-${SWUPDATE_BOOTLOADER}.wks.in"
     ABROOTFS_PART_UUID_A ?= "fedcba98-7654-3210-cafe-5e0710000001"
     ABROOTFS_PART_UUID_B ?= "fedcba98-7654-3210-cafe-5e0710000002"

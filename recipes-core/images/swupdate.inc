@@ -1,7 +1,7 @@
 #
 # CIP Core, generic profile
 #
-# Copyright (c) Siemens AG, 2023-2025
+# Copyright (c) Siemens AG, 2023-2026
 #
 # Authors:
 #  Quirin Gylstorff <quirin.gylstorff@siemens.com>
@@ -11,6 +11,20 @@
 
 inherit image_uuid
 inherit read-only-rootfs
+
+SWUPDATE_BOOTLOADER ??= "efibootguard"
+python __anonymous() {
+    bootloader = d.getVar("SWUPDATE_BOOTLOADER")
+    if not bootloader in ["efibootguard"]:
+        bb.error(f"swupdate: SWUPDATE_BOOTLOADER set to incompatible value: '{bootloader}'")
+}
+
+include recipes-core/images/swupdate-${SWUPDATE_BOOTLOADER}.inc
+
+IMAGE_TYPEDEP:wic += "${RO_ROOTFS_TYPE}"
+IMAGE_FSTYPES:append = " swu"
+# input is already compressed
+SWU_COMPRESSION_TYPE = ""
 
 # read-only rootfs with /home and /var
 # as separate partitions is used

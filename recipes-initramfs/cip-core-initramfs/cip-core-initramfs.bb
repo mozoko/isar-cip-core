@@ -11,6 +11,8 @@
 
 inherit initramfs
 
+RO_ROOTFS_TYPE ??= "squashfs"
+
 INITRAMFS_INSTALL += " \
     initramfs-overlay-hook \
     "
