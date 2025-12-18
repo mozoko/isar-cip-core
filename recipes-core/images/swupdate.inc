@@ -58,3 +58,4 @@ IMAGE_INSTALL:append = "${@' swupdate' if bb.utils.to_boolean(d.getVar('SWUPDATE
 IMAGE_PREINSTALL:append = "${@'' if bb.utils.to_boolean(d.getVar('SWUPDATE_SELFBUILT')) else ' swupdate'}"
 
 IMAGE_INSTALL += " swupdate-handler-roundrobin"
+IMAGE_INSTALL += " swupdate-config"
