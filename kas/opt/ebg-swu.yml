@@ -16,11 +16,8 @@ header:
 
 local_conf_header:
   ebg_swu_bootloader: |
-    WKS_FILE ?= "${MACHINE}-efibootguard.wks.in"
     SWUPDATE_BOOTLOADER = "efibootguard"
     IMAGE_INSTALL:remove = "u-boot-script"
-  ebg_swu_image_options: |
-    CIP_IMAGE_OPTIONS:append = " recipes-core/images/efibootguard.inc"
   firmware-binaries: |
     # Add ovmf binaries for qemu
     CIP_IMAGE_OPTIONS:append:qemu-amd64 = " recipes-core/images/deploy-ovmf.inc"

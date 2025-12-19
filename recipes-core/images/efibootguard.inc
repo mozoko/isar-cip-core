@@ -1,12 +1,1 @@
-#
-# CIP Core, generic profile
-#
-# Copyright (c) Siemens AG, 2020, 2024
-#
-# Authors:
-#  Quirin Gylstorff <quirin.gylstorff@siemens.com>
-#
-# SPDX-License-Identifier: MIT
-#
-
-inherit efibootguard
+swupdate-efibootguard.inc
