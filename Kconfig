@@ -79,6 +79,15 @@ config TARGET_HIHOPE_RZG2M
 	select ARCH_ARM64
 	select HAS_SWUPDATE
 
+config TARGET_TI_AM62PX_SK
+	bool "Texas Instruments AM62Px SK"
+	select ARCH_ARM64
+	select HAS_SWUPDATE
+	select HAS_SECURE_BOOT
+	select HAS_DISK_ENCRYPTION
+	select HAS_OPTEE
+	select FTPM_STMM
+
 config TARGET_QEMU_ARM
 	bool "QEMU ARM (armhf)"
 	select ARCH_ARM
@@ -105,15 +114,6 @@ config TARGET_QEMU_RISCV64
 	select ARCH_RISCV64
 	select HAS_SWUPDATE if KERNEL_6_1 || KERNEL_6_12
 
-config TARGET_TI_AM62PX_SK
-	bool "Texas Instruments AM62Px SK"
-	select ARCH_ARM64
-	select HAS_SWUPDATE
-	select HAS_SECURE_BOOT
-	select HAS_DISK_ENCRYPTION
-	select HAS_OPTEE
-	select FTPM_STMM
-
 endchoice
 
 config KAS_INCLUDE_BOARD
@@ -122,12 +122,12 @@ config KAS_INCLUDE_BOARD
 	default "kas/board/x86-uefi.yml" if TARGET_X86_UEFI
 	default "kas/board/qemu-arm64.yml" if TARGET_QEMU_ARM64
 	default "kas/board/hihope-rzg2m.yml" if TARGET_HIHOPE_RZG2M
+	default "kas/board/ti-am62px-sk.yml" if TARGET_TI_AM62PX_SK
 	default "kas/board/qemu-arm.yml" if TARGET_QEMU_ARM
 	default "kas/board/bbb.yml" if TARGET_BBB
 	default "kas/board/de0-nano-soc.yml" if TARGET_DE0_NANO_SOC
 	default "kas/board/iwg20m.yml" if TARGET_IWG20D
 	default "kas/board/qemu-riscv64.yml" if TARGET_QEMU_RISCV64
-	default "kas/board/ti-am62px-sk.yml" if TARGET_TI_AM62PX_SK
 
 comment "Kernel options"
 
