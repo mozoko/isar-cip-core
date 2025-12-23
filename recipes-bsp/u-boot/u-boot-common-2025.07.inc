@@ -39,6 +39,10 @@ S = "${WORKDIR}/u-boot-${PV}"
 DEBIAN_BUILD_DEPENDS += ", libssl-dev:native, libssl-dev:${DISTRO_ARCH}, \
     libgnutls28-dev:native, libgnutls28-dev:${DISTRO_ARCH}"
 
+U_BOOT_EXTRA_BUILDCMD ?= ""
+
+TEMPLATE_VARS += "U_BOOT_EXTRA_BUILDCMD"
+
 STATIC_KEYS_BUILD_DEPENDS = ", \
     openssl, efivar, secure-boot-secrets, python3-openssl:native"
 STATIC_KEYS_BUILD_DEPENDS:append:buster   = ", pesign"
