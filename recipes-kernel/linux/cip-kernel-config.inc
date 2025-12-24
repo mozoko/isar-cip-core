@@ -11,6 +11,7 @@
 
 SRC_URI:append = " ${@ \
     'git://gitlab.com/cip-project/cip-kernel/cip-kernel-config.git;protocol=https;branch=master;destsuffix=cip-kernel-config;name=cip-kernel-config \
+    file://0001-6.12.y-cip-riscv-Add-config-for-BeagleV-Fire.patch;patchdir=${WORKDIR}/cip-kernel-config \
     file://no-tpm-hwrng.cfg' \
     if bb.utils.to_boolean(d.getVar('USE_CIP_KERNEL_CONFIG')) else '' \
     }"
