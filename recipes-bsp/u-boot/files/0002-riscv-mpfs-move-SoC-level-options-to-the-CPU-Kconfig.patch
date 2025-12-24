@@ -1,0 +1,83 @@
+From 61f4e301ad700bcc2d87521258dbd31e073a6088 Mon Sep 17 00:00:00 2001
+From: Conor Dooley <conor.dooley@microchip.com>
+Date: Wed, 19 Nov 2025 12:38:43 +0000
+Subject: [PATCH 2/3] riscv: mpfs: move SoC level options to the CPU Kconfig
+
+There are multiple boards that use the PolarFire SoC, so extract
+the Kconfig sections that are determined at a CPU level from the board
+Kconfigs now that we have a CPU Kconfig.
+
+Signed-off-by: Conor Dooley <conor.dooley@microchip.com>
+---
+ arch/riscv/cpu/mpfs/Kconfig          | 17 +++++++++++++++++
+ board/microchip/mpfs_generic/Kconfig | 20 --------------------
+ 2 files changed, 17 insertions(+), 20 deletions(-)
+
+diff --git a/arch/riscv/cpu/mpfs/Kconfig b/arch/riscv/cpu/mpfs/Kconfig
+index 3e99c1aae38..bcf1ede818b 100644
+--- a/arch/riscv/cpu/mpfs/Kconfig
++++ b/arch/riscv/cpu/mpfs/Kconfig
+@@ -14,3 +14,20 @@ config MICROCHIP_MPFS
+ 	imply SPL_LOAD_FIT
+ 	imply REGMAP
+ 	imply SYSCON
++	imply CLK_CCF
++	imply CLK_MPFS
++	imply SYS_NS16550
++	imply MACB
++	imply MII
++	imply CMD_I2C
++	imply DM_I2C
++	imply SYS_I2C_MICROCHIP
++	imply MMC
++	imply MMC_WRITE
++	imply MMC_SDHCI
++	imply MMC_SDHCI_CADENCE
++	imply MMC_SDHCI_ADMA
++	imply MMC_HS200_SUPPORT
++	imply SPI
++	imply DM_SPI
++	imply MICROCHIP_QSPI
+diff --git a/board/microchip/mpfs_generic/Kconfig b/board/microchip/mpfs_generic/Kconfig
+index 49663a4c562..d38e56c742d 100644
+--- a/board/microchip/mpfs_generic/Kconfig
++++ b/board/microchip/mpfs_generic/Kconfig
+@@ -22,11 +22,6 @@ config BOARD_SPECIFIC_OPTIONS # dummy
+ 	select BOARD_EARLY_INIT_F
+ 	select BOARD_LATE_INIT
+ 	imply SMP
+-	imply CLK_CCF
+-	imply CLK_MPFS
+-	imply REGMAP
+-	imply SYSCON
+-	imply SYS_NS16550
+ 	imply CMD_DHCP
+ 	imply CMD_EXT2
+ 	imply CMD_EXT4
+@@ -39,23 +34,8 @@ config BOARD_SPECIFIC_OPTIONS # dummy
+ 	imply EFI_PARTITION
+ 	imply IP_DYN
+ 	imply ISO_PARTITION
+-	imply MACB
+-	imply MII
+ 	imply PHY_LIB
+ 	imply PHY_VITESSE
+-	imply MMC
+-	imply MMC_WRITE
+-	imply MMC_SDHCI
+-	imply MMC_SDHCI_CADENCE
+-	imply MMC_SDHCI_ADMA
+-	imply MMC_HS200_SUPPORT
+-	imply CMD_I2C
+-	imply DM_I2C
+-	imply SYS_I2C_MICROCHIP
+-	imply MTD
+-	imply SPI
+-	imply DM_SPI
+-	imply MICROCHIP_COREQSPI
+ 	imply MTD_SPI_NAND
+ 	imply CMD_MTD
+ 	imply CMD_MTDPARTS
+-- 
+2.51.0
+
