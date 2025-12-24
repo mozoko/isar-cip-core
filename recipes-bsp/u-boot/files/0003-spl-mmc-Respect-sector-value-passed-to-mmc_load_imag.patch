@@ -1,7 +1,7 @@
-From 27441e4cad3bcb2fd0c83c85f29a71e68f5a8c2d Mon Sep 17 00:00:00 2001
+From 4d9cfe96b1a770f0f6ab8ba56c9e21ff85e53c49 Mon Sep 17 00:00:00 2001
 From: Jan Kiszka <jan.kiszka@siemens.com>
 Date: Fri, 14 Nov 2025 13:34:48 +0100
-Subject: [PATCH 2/6] spl: mmc: Respect sector value passed to
+Subject: [PATCH 3/6] spl: mmc: Respect sector value passed to
  mmc_load_image_raw_partition
 
 This function and the sector parameter evolved over the time. By now,
@@ -19,7 +19,7 @@ Signed-off-by: Jan Kiszka <jan.kiszka@siemens.com>
  1 file changed, 4 deletions(-)
 
 diff --git a/common/spl/spl_mmc.c b/common/spl/spl_mmc.c
-index d06f9f0dee6..81415ae7594 100644
+index 1942e417075..47cfe4aef58 100644
 --- a/common/spl/spl_mmc.c
 +++ b/common/spl/spl_mmc.c
 @@ -137,11 +137,7 @@ static int mmc_load_image_raw_partition(struct spl_image_info *spl_image,

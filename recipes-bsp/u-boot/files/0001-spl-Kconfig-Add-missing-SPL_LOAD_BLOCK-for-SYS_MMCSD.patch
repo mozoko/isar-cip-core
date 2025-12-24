@@ -1,0 +1,30 @@
+From 542e5b9c621a8f0eade97c745bbf6150cb79f254 Mon Sep 17 00:00:00 2001
+From: Jan Kiszka <jan.kiszka@siemens.com>
+Date: Fri, 28 Nov 2025 12:08:19 +0100
+Subject: [PATCH 1/6] spl: Kconfig: Add missing SPL_LOAD_BLOCK for
+ SYS_MMCSD_RAW_MODE_U_BOOT_USE_PARTITION_TYPE
+
+We need to explicitly select SPL_LOAD_BLOCK when USE_PARTITION_TYPE is
+enabled, just like the other choices do.
+
+Fixes: 2a00d73d081a ("spl: mmc: Try to clean up raw-mode options")
+Signed-off-by: Jan Kiszka <jan.kiszka@siemens.com>
+---
+ common/spl/Kconfig | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/common/spl/Kconfig b/common/spl/Kconfig
+index 3b7b6cafef8..142cdb34cd5 100644
+--- a/common/spl/Kconfig
++++ b/common/spl/Kconfig
+@@ -573,6 +573,7 @@ config SYS_MMCSD_RAW_MODE_U_BOOT_USE_PARTITION
+ 
+ config SYS_MMCSD_RAW_MODE_U_BOOT_USE_PARTITION_TYPE
+ 	bool "MMC raw mode: by partition type"
++	select SPL_LOAD_BLOCK
+ 	depends on DOS_PARTITION
+ 	help
+ 	  Use partition type for specifying U-Boot partition on MMC/SD in
+-- 
+2.51.0
+

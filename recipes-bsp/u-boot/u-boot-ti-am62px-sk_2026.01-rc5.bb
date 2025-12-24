@@ -21,7 +21,6 @@ SRC_URI += " \
 	https://github.com/TexasInstruments/ti-linux-firmware/raw/refs/tags/${TI_FIRMWARE_PV}/ti-dm/am62pxx/ipc_echo_testb_mcu1_0_release_strip.xer5f;downloadfilename=ipc_echo_testb_mcu1_0_release_strip.xer5f;name=am62p-dm \
 	file://rules-${MACHINE} \
 	file://ti-extra.cfg \
-	file://0001-configs-KASLR-OPTEE-RNG-support-for-K3-devic.patch \
 	"
 
 SRC_URI[am62p-dm.sha256sum] = "85ba372a3c9cd0d09c84f9bbe46a72c7e4d6fdaff67df3ee7fbec3996965f044"

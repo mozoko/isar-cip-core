@@ -15,18 +15,14 @@ FILESPATH:append := ":${FILE_DIRNAME}/files"
 
 SRC_URI += " \
     https://ftp.denx.de/pub/u-boot/u-boot-${PV}.tar.bz2 \
-    file://0001-tools-Do-not-generate-logo-when-cross-building.patch \
-    file://0001-Kconfig-Convert-SYS_EARLY_PCI_INIT-to-Kconfig.patch \
-    file://0002-qemu_arm-Select-CONFIG_SYS_EARLY_PCI_INIT.patch \
-    file://0003-test-Fix-optee-unit-test.patch \
-    file://0001-arch-arm-mach-socfpga-Fix-non-Agilex-targets.patch \
-    file://0002-spl-mmc-Respect-sector-value-passed-to-mmc_load_imag.patch \
-    file://0003-spl-mmc-Account-for-SYS_MMCSD_RAW_MODE_U_BOOT_USE_PA.patch \
+    file://0001-spl-Kconfig-Add-missing-SPL_LOAD_BLOCK-for-SYS_MMCSD.patch \
+    file://0002-spl-mmc-Account-for-SYS_MMCSD_RAW_MODE_U_BOOT_USE_PA.patch \
+    file://0003-spl-mmc-Respect-sector-value-passed-to-mmc_load_imag.patch \
     file://0004-arch-arm-mach-socfpga-Adjust-a-raw-sectors-for-MMC-l.patch \
     file://0005-configs-socfpga-Fix-de0_nano_soc-boot.patch \
     file://0006-configs-socfpga-Permit-EFI-booting.patch \
     file://rules.tmpl;subdir=debian"
-SRC_URI[sha256sum] = "0f933f6c5a426895bf306e93e6ac53c60870e4b54cda56d95211bec99e63bec7"
+SRC_URI[sha256sum] = "2eddf75fe261bdf2e644f4a72737e04cc9d99590c7ccac4fb0835b9e1d52f92b"
 
 SRC_URI:append:ftpm-stmm = " \
     file://ftpm-stmm.cfg"

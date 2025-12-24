@@ -1,4 +1,4 @@
-From fdd7059526064d130b6797c7e62ed26b25bd2f77 Mon Sep 17 00:00:00 2001
+From 7af75a1322ef6e5ffbc809d30e4e017cd7f46cc2 Mon Sep 17 00:00:00 2001
 From: Jan Kiszka <jan.kiszka@siemens.com>
 Date: Thu, 13 Nov 2025 18:38:28 +0100
 Subject: [PATCH 5/6] configs: socfpga: Fix de0_nano_soc boot
@@ -15,7 +15,7 @@ Signed-off-by: Jan Kiszka <jan.kiszka@siemens.com>
  1 file changed, 1 insertion(+)
 
 diff --git a/configs/socfpga_de0_nano_soc_defconfig b/configs/socfpga_de0_nano_soc_defconfig
-index 7188c46d98e..0bcc970728f 100644
+index 32cdf6d3a6c..6564cbd03c6 100644
 --- a/configs/socfpga_de0_nano_soc_defconfig
 +++ b/configs/socfpga_de0_nano_soc_defconfig
 @@ -28,6 +28,7 @@ CONFIG_SPL_NO_BSS_LIMIT=y

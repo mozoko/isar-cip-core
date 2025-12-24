@@ -1,4 +1,4 @@
-From 93a35b8a962d4f8d9e211c55e2d85b12d2ccce4b Mon Sep 17 00:00:00 2001
+From 6201f8e8df19b890baacb15690be067430e3e4e9 Mon Sep 17 00:00:00 2001
 From: Jan Kiszka <jan.kiszka@siemens.com>
 Date: Fri, 14 Nov 2025 13:53:25 +0100
 Subject: [PATCH 4/6] arch: arm: mach-socfpga: Adjust a raw sectors for MMC
@@ -12,14 +12,14 @@ offset via SYS_MMCSD_RAW_MODE_U_BOOT_USE_SECTOR
 
 Signed-off-by: Jan Kiszka <jan.kiszka@siemens.com>
 ---
- arch/arm/mach-socfpga/board.c | 9 +++++++++
- 1 file changed, 9 insertions(+)
+ arch/arm/mach-socfpga/board.c | 11 +++++++++++
+ 1 file changed, 11 insertions(+)
 
 diff --git a/arch/arm/mach-socfpga/board.c b/arch/arm/mach-socfpga/board.c
-index 8506d510413..a7598e79362 100644
+index 28554b7a109..7f65aed4540 100644
 --- a/arch/arm/mach-socfpga/board.c
 +++ b/arch/arm/mach-socfpga/board.c
-@@ -13,6 +13,7 @@
+@@ -14,6 +14,7 @@
  #include <hang.h>
  #include <handoff.h>
  #include <image.h>
@@ -27,15 +27,17 @@ index 8506d510413..a7598e79362 100644
  #include <usb.h>
  #include <usb/dwc2_udc.h>
  #include <asm/global_data.h>
-@@ -208,3 +209,11 @@ void lmb_arch_add_memory(void)
+@@ -209,3 +210,13 @@ void lmb_arch_add_memory(void)
  	}
  }
  #endif
 +
-+#ifdef CONFIG_SPL
++#if (defined(CONFIG_TARGET_SOCFPGA_ARRIA10) || \
++     defined(CONFIG_TARGET_SOCFPGA_GEN5)) && defined(CONFIG_XPL_BUILD)
 +unsigned long board_spl_mmc_get_uboot_raw_sector(struct mmc *mmc,
 +						 unsigned long raw_sect)
 +{
++	/* offset of u-boot proper inside u-boot-with-spl.sfp image */
 +	return (CONFIG_SPL_PAD_TO * 4) / 512 + raw_sect;
 +}
 +#endif
