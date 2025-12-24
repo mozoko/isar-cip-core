@@ -114,6 +114,11 @@ config TARGET_QEMU_RISCV64
 	select ARCH_RISCV64
 	select HAS_SWUPDATE if KERNEL_6_1 || KERNEL_6_12
 
+config TARGET_BEAGLEV_FIRE
+	bool "BeagleV-Fire (riscv64)"
+	select ARCH_RISCV64
+	select HAS_SWUPDATE
+
 endchoice
 
 config KAS_INCLUDE_BOARD
@@ -128,6 +133,7 @@ config KAS_INCLUDE_BOARD
 	default "kas/board/de0-nano-soc.yml" if TARGET_DE0_NANO_SOC
 	default "kas/board/iwg20m.yml" if TARGET_IWG20D
 	default "kas/board/qemu-riscv64.yml" if TARGET_QEMU_RISCV64
+	default "kas/board/beaglev-fire.yml" if TARGET_BEAGLEV_FIRE
 
 comment "Kernel options"
 
@@ -148,11 +154,11 @@ config KERNEL_4_19
 
 config KERNEL_5_10
 	bool "Kernel 5.10.x-cip"
-	depends on !TARGET_TI_AM62PX_SK
+	depends on !TARGET_TI_AM62PX_SK && !TARGET_BEAGLEV_FIRE
 
 config KERNEL_6_1
 	bool "Kernel 6.1.x-cip"
-	depends on !TARGET_TI_AM62PX_SK
+	depends on !TARGET_TI_AM62PX_SK && !TARGET_BEAGLEV_FIRE
 
 config KERNEL_6_12
 	bool "Kernel 6.12.x-cip"
