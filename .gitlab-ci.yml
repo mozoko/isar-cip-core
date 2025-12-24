@@ -164,6 +164,13 @@ build:qemu-riscv64:
     target: qemu-riscv64
     use_rt: disable
 
+build:beaglev-fire:
+  extends:
+    - .build_base
+  variables:
+    target: beaglev-fire
+    use_rt: enable
+
 # test images
 build:x86-uefi-test:
   extends:
