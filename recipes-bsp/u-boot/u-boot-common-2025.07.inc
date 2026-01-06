@@ -28,6 +28,9 @@ SRC_URI += " \
     file://rules.tmpl;subdir=debian"
 SRC_URI[sha256sum] = "0f933f6c5a426895bf306e93e6ac53c60870e4b54cda56d95211bec99e63bec7"
 
+SRC_URI:append:armhf = " \
+    file://no-grub-workaround.cfg"
+
 SRC_URI:append:ftpm-stmm = " \
     file://ftpm-stmm.cfg"
 
@@ -53,6 +56,11 @@ SECURE_BOOT_DEPENDS:ftpm-stmm = ""
 
 DEBIAN_BUILD_DEPENDS:append:secureboot = "${SECURE_BOOT_BUILD_DEPENDS}"
 DEPENDS:append:secureboot = "${SECURE_BOOT_DEPENDS}"
+
+do_prepare_build:append:armhf() {
+    sed -ni '/### Disable grub workaround/q;p' ${S}/configs/${U_BOOT_CONFIG}
+    cat ${WORKDIR}/no-grub-workaround.cfg >> ${S}/configs/${U_BOOT_CONFIG}
+}
 
 do_prepare_build:append:ftpm-stmm() {
     sed -ni '/### Enable OPTEE, fTPM and StMM/q;p' ${S}/configs/${U_BOOT_CONFIG}
