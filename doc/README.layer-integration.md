@@ -19,7 +19,7 @@ with /etc as overlay. It also installs and configures efibootguard and SWUpdate.
 An additional image type is generated with contains the update artifacts.
 
 ```bitbake
-require recipes-core/images/swupdate.inc
+require recipes-core/images/swupdate-ab-rootfs.inc
 ```
 
 ## Create a image description

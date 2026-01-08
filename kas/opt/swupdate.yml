@@ -16,7 +16,7 @@ header:
 
 local_conf_header:
   image-option-swupdate: |
-    CIP_IMAGE_OPTIONS:append = " recipes-core/images/swupdate.inc"
+    CIP_IMAGE_OPTIONS:append = " recipes-core/images/swupdate-ab-rootfs.inc"
     OVERRIDES .= ":swupdate"
 
   wic-swu: |
