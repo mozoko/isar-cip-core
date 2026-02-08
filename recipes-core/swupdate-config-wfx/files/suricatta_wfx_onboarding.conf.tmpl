@@ -1,0 +1,10 @@
+WFX_CONFIG_FILE="/var/wfx/wfx_config.conf"
+
+if [ -f "$WFX_CONFIG_FILE" ]; then
+    CLIENT_ID=$(grep 'WFX_CLIENT_ID=' "$WFX_CONFIG_FILE" | awk -F'=' '{print $2}')
+else
+    CLIENT_ID="onboarding"
+fi
+
+SWUPDATE_SURICATTA_ARGS="--server lua -u ${WFX_URL} -i $CLIENT_ID"
+SWUPDATE_ARGS="--digest-provider opensslCMS $SWUPDATE_ARGS"
