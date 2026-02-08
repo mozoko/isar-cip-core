@@ -1,0 +1,22 @@
+#
+# CIP Core, generic profile
+#
+# Copyright (c) Toshiba Corporation, 2026
+#
+# Authors:
+#  Adithya Balakumar <adithya.balakumar@toshiba-tsip.com>
+#
+# SPDX-License-Identifier: MIT
+#
+# This kas file adds wfx options
+header:
+  version: 14
+
+local_conf_header:
+  wfx: |
+    WFX_URL ??= ""
+    IMAGE_INSTALL:append = " swupdate-config-wfx"
+  wfx-onboard: |
+    WFX_BASED_ONBOARDING ??= "0"
+    OVERRIDES .= "${@':wfx-onboard' if bb.utils.to_boolean(d.getVar("WFX_BASED_ONBOARDING")) else ''}"
+    IMAGE_INSTALL:append:wfx-onboard = " wfx-onboarding-progress-client"
