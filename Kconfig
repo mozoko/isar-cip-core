@@ -285,12 +285,34 @@ config IMAGE_SWUPDATE
 
 if IMAGE_SWUPDATE
 
+config WFX_SUPPORT
+	bool "Enable WFX support"
+	help
+	  Enable WFX support for device updates.
+
+if WFX_SUPPORT
+
 config WFX_URL
 	string "WFX backend URL"
 	default ""
 	help
 	  URL of the wfx backend for software updates. An empty string here implies wfx support is disabled.
 	  See ./doc/README.swupdate.md for more about wfx support for updates.
+
+config INCLUDE_WFX_BASED_ONBOARDING
+	bool "WFX based device onboarding"
+	help
+	  Enable wfx based device onboarding capability. See ./doc/README.swupdate.md for more.
+
+config WFX_BASED_ONBOARDING
+	int
+	default 1 if INCLUDE_WFX_BASED_ONBOARDING
+
+config KAS_INCLUDE_WFX
+	string
+	default "kas/opt/wfx.yml"
+
+endif
 
 choice
 	prompt "Update type"
