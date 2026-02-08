@@ -16,12 +16,24 @@ DEBIAN_PROVIDES := "${PN}"
 
 PN .= "-${MACHINE}"
 
-SRC_URI = "file://swupdate.cfg \
+SRC_URI = "file://swupdate.cfg.tmpl \
            file://hwrevision.tmpl"
 
 MACHINE_HW_VERSION ??= "cip-core-1.0"
-TEMPLATE_FILES += "hwrevision.tmpl"
-TEMPLATE_VARS += "MACHINE MACHINE_HW_VERSION"
+WFX_ADDITIONAL_HTTP_HEADERS_SECTION ??= ""
+TEMPLATE_FILES += "hwrevision.tmpl swupdate.cfg.tmpl"
+TEMPLATE_VARS += "MACHINE MACHINE_HW_VERSION WFX_ADDITIONAL_HTTP_HEADERS_SECTION"
+
+python do_add_http_header_section() {
+    if "wfx-onboard" in d.getVar('OVERRIDES'):
+        additional_http_headers = f"""
+custom-http-headers: (
+    {{ name = "X-Machine-Serial-No"; value="#MACHINE-ID#" }},
+);
+        """
+        d.setVar('WFX_ADDITIONAL_HTTP_HEADERS_SECTION', additional_http_headers)
+}
+do_transform_template[prefuncs] += "do_add_http_header_section"
 
 do_install[cleandirs] = "${D}/etc/"
 do_install() {
