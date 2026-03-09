@@ -595,6 +595,52 @@ ustate:           0 (OK)
 user variables:
 ```
 
+## Device onboarding with wfx
+
+This is a simple function that onboards a device to a management backend with the help of `wfx`. The core logic is implemented as a plugin for `wfx` which intercepts "onboarding" requests and orchestrates a bunch of tasks in the backend. See [here](https://gitlab.com/cip-playground/cip-wfx-onboarding-client-plugin/-/blob/master/onboarding-plugin/README.md) for more details.
+
+The onboarding plugin is maintained as a separate project [here](https://gitlab.com/cip-playground/cip-wfx-onboarding-client-plugin). To setup the required services, refer to the [README](https://gitlab.com/cip-playground/cip-wfx-onboarding-client-plugin#setup-services) in the project. The services in the backend include `wfx` running with the plugin and a device registration service.
+
+Clone the repository
+```
+host$ git clone https://gitlab.com/cip-playground/cip-wfx-onboarding-client-plugin.git
+```
+
+Build the plugin
+```
+host$ cd onboarding-plugin
+host$ make build
+host$ cd ..
+```
+
+Setup the services with `docker-compose`, set `HOST_IP` to the IP of the host where the services are running.
+```
+host$ HOST_IP=${HOST_IP} docker compose up -d
+```
+
+Device onboarding support can be enabled with the `WFX based device onboarding` option in the `Kconfig` menu.
+
+Building images to try this similar to what's mentioned [here](https://gitlab.com/cip-project/cip-core/isar-cip-core/-/blob/master/doc/README.swupdate.md?ref_type=heads&plain=1#L485). Boot the image as mentioned here[https://gitlab.com/cip-project/cip-core/isar-cip-core/-/blob/master/doc/README.swupdate.md?ref_type=heads&plain=1#L521].
+
+Right after boot, `SWUpdate` queries `wfx` with a clientId of `onboarding` which is a trigger for the onboarding function to start. This can be seen in the `SWUpdate` logs:
+```
+Mar 09 16:54:55 demo swupdate.sh[413]: [INFO ] : SWUPDATE running :  [notify_helper] : Running with device ID "onboarding" on "http://WFX_HOST/api/wfx/v1"
+Mar 09 16:54:55 demo swupdate.sh[413]: [TRACE] : SWUPDATE running :  [start_suricatta] : Server initialized, entering suricatta main loop.
+```
+
+The plugin creates an onboarding artifact which is essentially a `swu` file, creates to `wfx` job to install the artifact in the target device and sends the job ID as the response to the device. The device now queries for the job and installs the artifact under `/var/wfx`.
+
+The custom [progress client](https://gitlab.com/cip-playground/cip-wfx-onboarding-client-plugin/-/tree/master/onboarding-progress-client?ref_type=heads) installed in the image listens to the progress of the onboarding job and restarts `SWUpdate` once the onboarding job is complete.
+
+Now, `SWUpdate` queries `wfx` with the new client ID received during onboarding
+```
+Mar 09 17:02:02 demo swupdate.sh[545]: [INFO ] : SWUPDATE running :  [notify_helper] : Running with device ID "15d56255-111d-0c14-fed4-1af082c912da" on "http://WFX_HOST/api/wfx/v1"
+```
+
+The onboarded device is also registered with the device registration service running in the backend.
+
+Now, the new client ID can be used to target `wfx` jobs for devices.
+
 # Building and testing the CIP Core image for BBB
 
 Follow the steps mentioned in the section [Building and testing the CIP Core image](README.swupdate.md#building-and-testing-the-cip-core-image) for creating images and .swu files.
