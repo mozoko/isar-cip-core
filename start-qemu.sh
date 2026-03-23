@@ -18,11 +18,15 @@ usage()
 	echo "if the built was done via \"kas-container menu\"."
 	echo
 	echo "Environment variables (default to settings in .config.yaml):"
-	echo "  QEMU_PATH         use a locally built QEMU version"
-	echo "  SWUPDATE_BOOT     boot swupdate image"
-	echo "  SECURE_BOOT       start a secure boot environment"
-	echo "  DISTRO_RELEASE    select a specific Debian release"
-	echo "  TARGET_IMAGE      select a specific image type"
+	echo "  QEMU_PATH             use a locally built QEMU version"
+	echo "  SWUPDATE_BOOT         boot swupdate image"
+	echo "  SECURE_BOOT           start a secure boot environment"
+	echo "  DISTRO_RELEASE        select a specific Debian release"
+	echo "  TARGET_IMAGE          select a specific image type"
+	echo "  FTPM_STMM             use fTPM with STMM support"
+	echo "  IMAGE_DATA_ENCRYPTION use data encryption"
+	echo "  BASE_DIR              base directory where the build folder is located"
+	echo "  IMAGE_PREFIX          prefix of the produced image files"
 	exit 1
 }
 
@@ -84,8 +88,15 @@ else
 	fi
 fi
 
-if grep -s -q "IMAGE_DATA_ENCRYPTION: true" .config.yaml && \
-   ! grep -s -q "FTPM_STMM: true" .config.yaml; then
+if grep -s -q "FTPM_STMM: true" .config.yaml; then
+	FTPM_STMM="true"
+fi
+
+if grep -s -q "IMAGE_DATA_ENCRYPTION: true" .config.yaml; then
+	IMAGE_DATA_ENCRYPTION="true"
+fi
+
+if [ -n "${IMAGE_DATA_ENCRYPTION}" ] && [ -z "${FTPM_STMM}" ] ; then
 	case "${arch}" in
 		x86|x86_64|amd64)
 			TPM2_DEVICE="tpm-tis"
@@ -128,7 +139,7 @@ case "${arch}" in
 			-device virtio-serial-device \
 			-device virtconsole,chardev=con -chardev vc,id=con \
 			-device virtio-net-device,netdev=net"
-		if grep -s -q "FTPM_STMM: true" .config.yaml; then
+		if [ -n "${FTPM_STMM}" ]; then
 			QEMU_EXTRA_ARGS="${QEMU_EXTRA_ARGS} \
 				-machine virt,secure=on \
 				-device sdhci-pci -device emmc,drive=disk,rpmb-partition-size=2097152 \
@@ -179,8 +190,11 @@ case "${arch}" in
 		;;
 esac
 
-BASE_DIR=$(readlink -f $(dirname $0))
-IMAGE_PREFIX="${BASE_DIR}/build/tmp/deploy/images/qemu-${QEMU_ARCH}/${TARGET_IMAGE}-cip-core-${DISTRO_RELEASE}-qemu-${QEMU_ARCH}${TEST_IMAGE}"
+BASE_DIR_DEFAULT="$(readlink -f "$(dirname "$0")")"
+BASE_DIR="${BASE_DIR:-$BASE_DIR_DEFAULT}"
+IMAGE_PREFIX_DEFAULT="${BASE_DIR}/build/tmp/deploy/images/qemu-${QEMU_ARCH}/${TARGET_IMAGE}-cip-core-${DISTRO_RELEASE}-qemu-${QEMU_ARCH}${TEST_IMAGE}"
+IMAGE_PREFIX="${IMAGE_PREFIX:-$IMAGE_PREFIX_DEFAULT}"
+
 
 if [ -z "${DISPLAY}" ]; then
 	QEMU_EXTRA_ARGS="${QEMU_EXTRA_ARGS} -nographic"
