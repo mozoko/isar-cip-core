@@ -75,14 +75,14 @@ default:
     - if [ "${build_updates}" = "enable" ]; then
           mkdir build/previous-image;
           if [ "${extension}" = "security" ] || [ "${extension}" = "ebg-secure-boot-snakeoil" ]; then
-              cp build/tmp/deploy/images/${target}/*.verity build/previous-image;
+              cp build/tmp/deploy/images/${target}/cip-core-${release}-*/*.verity build/previous-image;
           else
-              cp build/tmp/deploy/images/${target}/*.squashfs build/previous-image;
+              cp build/tmp/deploy/images/${target}/cip-core-${release}-*/*.squashfs build/previous-image;
           fi;
-          cp build/tmp/deploy/images/${target}/linux.efi build/previous-image;
+          cp build/tmp/deploy/images/${target}/cip-core-${release}-*/linux.efi build/previous-image;
           echo "PV = \"2.0\"" >> recipes-core/images/cip-core-image.inc;
           kas build ${base_yaml}:kas/opt/delta-update.yml:kas/opt/kernel-panic.yml;
-          for swu in build/tmp/deploy/images/${target}/*.swu; do
+          for swu in build/tmp/deploy/images/${target}/cip-core-${release}-*/*.swu; do
               mv "$swu" build/previous-image/$(basename "${swu%.swu}-broken.swu");
           done;
           echo "PV = \"2.1\"" >> recipes-core/images/cip-core-image.inc;
