@@ -23,7 +23,7 @@ DEPLOY=$7
 
 # Reproducible Builds specific variables
 RB_BUILD_NUM=$8
-
+DEPLOY_DIR=build/tmp/deploy/images/$TARGET
 IMAGE_PATH=cip-core-${DISTRO_CODENAME}-cip-core-image
 if [ "${EXTENSION}" != "none" ]; then
 	if [ "${EXTENSION}" = "security" ]; then
@@ -33,7 +33,7 @@ if [ "${EXTENSION}" != "none" ]; then
 	fi
 fi
 
-BASE_PATH=build/tmp/deploy/images/$TARGET/$IMAGE_PATH/$TARGET
+BASE_PATH=$DEPLOY_DIR/$IMAGE_PATH/$TARGET
 S3_TARGET=s3://download2.cip-project.org/cip-core/$REF/$TARGET/
 
 if [ -n "${RB_BUILD_NUM}" ]; then
@@ -67,8 +67,8 @@ if [ -f "${BASE_PATH}.wic" ]; then
 		aws s3 cp --no-progress --acl public-read "${BASE_PATH}.wic.xz" "${S3_TARGET}"
 		aws s3 cp --no-progress --acl public-read "${BASE_PATH}.wic.bmap" "${S3_TARGET}"
 
-		if [ -f "build/tmp/deploy/images/$TARGET/firmware.bin" ]; then
-			aws s3 cp --no-progress --acl public-read "build/tmp/deploy/images/$TARGET/firmware.bin" "${S3_TARGET}"
+		if [ -f "$DEPLOY_DIR/$IMAGE_PATH/firmware.bin" ]; then
+			aws s3 cp --no-progress --acl public-read "$DEPLOY_DIR/$IMAGE_PATH/firmware.bin" "${S3_TARGET}"
 		fi
 	fi
 else
@@ -82,8 +82,8 @@ else
 	else
 		KERNEL_IMAGE="$BASE_PATH-vmlinu[xz]"
 		# iwg20m workaround
-		if [ -f "build/tmp/deploy/images/$TARGET/$IMAGE_PATH/zImage" ]; then
-			KERNEL_IMAGE=build/tmp/deploy/images/$TARGET/$IMAGE_PATH/zImage
+		if [ -f "$DEPLOY_DIR/$IMAGE_PATH/zImage" ]; then
+			KERNEL_IMAGE=$DEPLOY_DIR/$IMAGE_PATH/zImage
 		fi
 
 		# shellcheck disable=SC2086
@@ -91,7 +91,7 @@ else
 		aws s3 cp --no-progress --acl public-read "${BASE_PATH}-initrd.img" "${S3_TARGET}"
 
 		if [ "$DTB" != "none" ]; then
-			aws s3 cp --no-progress --acl public-read build/tmp/deploy/images/*/"$DTB" "${S3_TARGET}"
+			aws s3 cp --no-progress --acl public-read "$DEPLOY_DIR"/*/"$DTB" "${S3_TARGET}"
 		fi
 	fi
 fi
@@ -112,5 +112,5 @@ if ! echo "$CI_JOB_NAME" | grep -q "$1"; then
 	DPKG_STATUS_FILENAME=${CI_JOB_NAME#build:}-$1.dpkg_status
 fi
 if [ -z "${RB_BUILD_NUM}" ]; then
-	aws s3 cp --no-progress build/tmp/deploy/images/"$TARGET"/"$IMAGE_PATH"/*.dpkg_status s3://download.cip-project.org/cip-core/cve-checks/dpkg-status/"$DPKG_STATUS_FILENAME"
+	aws s3 cp --no-progress "$DEPLOY_DIR"/"$IMAGE_PATH"/*.dpkg_status s3://download.cip-project.org/cip-core/cve-checks/dpkg-status/"$DPKG_STATUS_FILENAME"
 fi
