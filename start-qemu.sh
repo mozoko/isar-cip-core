@@ -176,7 +176,7 @@ case "${arch}" in
 esac
 
 BASE_DIR=$(readlink -f $(dirname $0))
-IMAGE_PREFIX="${BASE_DIR}/build/tmp/deploy/images/qemu-${QEMU_ARCH}/${TARGET_IMAGE}-cip-core-${DISTRO_RELEASE}-qemu-${QEMU_ARCH}${TEST_IMAGE}"
+IMAGE_PREFIX="${BASE_DIR}/build/tmp/deploy/images/qemu-${QEMU_ARCH}/cip-core-${DISTRO_RELEASE}-${TARGET_IMAGE}/qemu-${QEMU_ARCH}"
 
 if [ -z "${DISPLAY}" ]; then
 	QEMU_EXTRA_ARGS="${QEMU_EXTRA_ARGS} -nographic"
@@ -215,8 +215,8 @@ if [ -n "${SECURE_BOOT}${SWUPDATE_BOOT}" ]; then
 	case "${arch}" in
 		x86|x86_64|amd64)
 			if [ -n "${SECURE_BOOT}" ]; then
-				ovmf_code=${OVMF_CODE:-./build/tmp/deploy/images/qemu-amd64/OVMF/OVMF_CODE_4M.secboot.fd}
-				ovmf_vars=${OVMF_VARS:-./build/tmp/deploy/images/qemu-amd64/OVMF/OVMF_VARS_4M.snakeoil.fd}
+				ovmf_code=${OVMF_CODE:-./build/tmp/deploy/images/qemu-${QEMU_ARCH}/cip-core-${DISTRO_RELEASE}-${TARGET_IMAGE}/OVMF/OVMF_CODE_4M.secboot.fd}
+				ovmf_vars=${OVMF_VARS:-./build/tmp/deploy/images/qemu-${QEMU_ARCH}/cip-core-${DISTRO_RELEASE}-${TARGET_IMAGE}/OVMF/OVMF_VARS_4M.snakeoil.fd}
 
 				${QEMU_PATH}${QEMU} \
 					-global ICH9-LPC.disable_s3=1 \
@@ -225,7 +225,7 @@ if [ -n "${SECURE_BOOT}${SWUPDATE_BOOT}" ]; then
 					-drive if=pflash,format=raw,file=${ovmf_vars} \
 					${QEMU_COMMON_OPTIONS} "$@"
 			else
-				ovmf_code=${OVMF_CODE:-./build/tmp/deploy/images/qemu-amd64/OVMF/OVMF_CODE_4M.fd}
+				ovmf_code=${OVMF_CODE:-./build/tmp/deploy/images/qemu-${QEMU_ARCH}/cip-core-${DISTRO_RELEASE}-${TARGET_IMAGE}/OVMF/OVMF_CODE_4M.fd}
 
 				${QEMU_PATH}${QEMU} \
 					-drive if=pflash,format=raw,unit=0,readonly=on,file=${ovmf_code} \
@@ -233,14 +233,14 @@ if [ -n "${SECURE_BOOT}${SWUPDATE_BOOT}" ]; then
 			fi
 			;;
 		arm64|aarch64|arm|armhf)
-			firmware_bin=${FIRMWARE_BIN:-./build/tmp/deploy/images/qemu-${QEMU_ARCH}/firmware.bin}
+			firmware_bin=${FIRMWARE_BIN:-./build/tmp/deploy/images/qemu-${QEMU_ARCH}/cip-core-${DISTRO_RELEASE}-${TARGET_IMAGE}/firmware.bin}
 
 			${QEMU_PATH}${QEMU} \
 				-bios ${firmware_bin} \
 				${QEMU_COMMON_OPTIONS} "$@"
 			;;
 		rv64|riscv64)
-			opensbi_bin=${FIRMWARE_BIN:-./build/tmp/deploy/images/qemu-${QEMU_ARCH}/fw_payload.bin}
+			opensbi_bin=${FIRMWARE_BIN:-./build/tmp/deploy/images/qemu-${QEMU_ARCH}/cip-core-${DISTRO_RELEASE}-${TARGET_IMAGE}/fw_payload.bin}
 
 			${QEMU_PATH}${QEMU} \
 				-bios ${opensbi_bin} \
