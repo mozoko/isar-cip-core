@@ -29,6 +29,7 @@
 # Andreas Reichel <andreas.reichel.ext (at] siemens.com>
 # Christian Storm <christian.storm (at] siemens.com>
 
+import glob
 import os
 import fnmatch
 import sys
@@ -241,9 +242,12 @@ class EfibootguardBootPlugin(SourcePlugin):
                 efistub=efistub,
                 uefi_kernel_file=uefi_kernel_file)
         if initrd_image:
-            initrd = "{deploy_dir}/{initrd_image}"\
-                .format(deploy_dir=deploy_dir, initrd_image=initrd_image)
-            cmd += ' -i {initrd}'.format(initrd=initrd)
+            pattern = '%s/**/%s' % (get_bitbake_var("DEPLOY_DIR"), initrd_image)
+            files = glob.glob(pattern, recursive=True)
+            msger.error(pattern)
+            if files:
+                initrd = files[0]
+                cmd += ' -i {initrd}'.format(initrd=initrd)
         if dtb_files:
             for dtb in dtb_files:
                 cmd += ' -d {deploy_dir}/{dtb_file}'.format(

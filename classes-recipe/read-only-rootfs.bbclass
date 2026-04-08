@@ -11,6 +11,9 @@
 
 INITRAMFS_RECIPE ?= "cip-core-initramfs"
 IMAGE_INITRD = "${INITRAMFS_RECIPE}"
+IMAGE_BASENAME = "${MACHINE}"
+INITRD_DEPLOY_FILE = "${INITRAMFS_RECIPE}-${DISTRO}-${MACHINE}-initrd.img"
+WICVARS += "DEPLOY_DIR"
 
 do_image_wic[depends] += "${INITRAMFS_RECIPE}:do_build"
 
