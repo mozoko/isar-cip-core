@@ -13,7 +13,7 @@ if ! which aws >/dev/null 2>&1; then
 	pip3 install awscli
 fi
 
-RELEASE=$1
+DISTRO_CODENAME=$1
 TARGET=$2
 EXTENSION=$3
 NO_KERNEL=$4
@@ -24,16 +24,16 @@ DEPLOY=$7
 # Reproducible Builds specific variables
 RB_BUILD_NUM=$8
 
-BASE_FILENAME=cip-core-image-cip-core-$RELEASE-$TARGET
+IMAGE_PATH=cip-core-${DISTRO_CODENAME}-cip-core-image
 if [ "${EXTENSION}" != "none" ]; then
 	if [ "${EXTENSION}" = "security" ]; then
-		BASE_FILENAME=cip-core-image-$EXTENSION-cip-core-$RELEASE-$TARGET
+		IMAGE_PATH=cip-core-$DISTRO_CODENAME-cip-core-image-$EXTENSION
 	else
-		BASE_FILENAME=cip-core-image-cip-core-$RELEASE-$TARGET-$EXTENSION
+		IMAGE_PATH=cip-core-image-cip-core-$DISTRO_CODENAME-$TARGET-$EXTENSION
 	fi
 fi
 
-BASE_PATH=build/tmp/deploy/images/$TARGET/$BASE_FILENAME
+BASE_PATH=build/tmp/deploy/images/$TARGET/$IMAGE_PATH/$TARGET
 S3_TARGET=s3://download2.cip-project.org/cip-core/$REF/$TARGET/
 
 if [ -n "${RB_BUILD_NUM}" ]; then
@@ -42,7 +42,7 @@ fi
 
 if [ "${NO_KERNEL}" = "enable" ]; then
 	if [ -f "${BASE_PATH}.tar.gz" ]; then
-		echo "Rename from ${BASE_FILENAME}.tar.gz to ${BASE_FILENAME}-nokernel.tar.gz"
+		echo "Rename from ${BASE_PATH}.tar.gz to ${BASE_PATH}-nokernel.tar.gz"
 		mv "${BASE_PATH}.tar.gz" "${BASE_PATH}-nokernel.tar.gz"
 	fi
 	BASE_PATH="${BASE_PATH}-nokernel"
@@ -58,11 +58,11 @@ if [ -f "${BASE_PATH}.wic" ]; then
 	elif [ "$DEPLOY" = "wic-partitions" ]; then
 		# deploy individual wic partitions, helpful for RB tests
 		cd build/tmp/deploy/images/"$TARGET"
-		tar --ignore-failed-read -cJf "${BASE_FILENAME}-wic-partitions.tar.xz" "${BASE_FILENAME}".wic.p*
-		aws s3 cp --no-progress --acl public-read "${BASE_FILENAME}-wic-partitions.tar.xz" "${S3_TARGET}"
+		tar --ignore-failed-read -cJf "${IMAGE_PATH}-wic-partitions.tar.xz" "${BASE_FILENAME}".wic.p*
+		aws s3 cp --no-progress --acl public-read "${IMAGE_PATH}-wic-partitions.tar.xz" "${S3_TARGET}"
 		cd -
 	else
-		echo "Compressing $BASE_FILENAME.wic..."
+		echo "Compressing $IMAGE_PATH.wic..."
 		xz -9 -k -T0 "${BASE_PATH}.wic"
 		aws s3 cp --no-progress --acl public-read "${BASE_PATH}.wic.xz" "${S3_TARGET}"
 		aws s3 cp --no-progress --acl public-read "${BASE_PATH}.wic.bmap" "${S3_TARGET}"
@@ -82,8 +82,8 @@ else
 	else
 		KERNEL_IMAGE="$BASE_PATH-vmlinu[xz]"
 		# iwg20m workaround
-		if [ -f "build/tmp/deploy/images/$TARGET/zImage" ]; then
-			KERNEL_IMAGE=build/tmp/deploy/images/$TARGET/zImage
+		if [ -f "build/tmp/deploy/images/$TARGET/$IMAGE_PATH/zImage" ]; then
+			KERNEL_IMAGE=build/tmp/deploy/images/$TARGET/$IMAGE_PATH/zImage
 		fi
 
 		# shellcheck disable=SC2086
@@ -112,5 +112,5 @@ if ! echo "$CI_JOB_NAME" | grep -q "$1"; then
 	DPKG_STATUS_FILENAME=${CI_JOB_NAME#build:}-$1.dpkg_status
 fi
 if [ -z "${RB_BUILD_NUM}" ]; then
-	aws s3 cp --no-progress build/tmp/deploy/images/"$TARGET"/cip-core-image-*.dpkg_status s3://download.cip-project.org/cip-core/cve-checks/dpkg-status/"$DPKG_STATUS_FILENAME"
+	aws s3 cp --no-progress build/tmp/deploy/images/"$TARGET"/"$IMAGE_PATH"/*.dpkg_status s3://download.cip-project.org/cip-core/cve-checks/dpkg-status/"$DPKG_STATUS_FILENAME"
 fi
