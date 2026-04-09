@@ -31,7 +31,7 @@ actions:
     to: flasher
     images:
       image:
-        url: #project_url#/#branch#/x86-uefi/cip-core-image-security-cip-core-#distribution#-x86-uefi.wic.xz
+        url: #project_url#/#branch#/x86-uefi/cip-core-#distribution#-cip-core-image-security/x86-uefi.wic.xz
 
 # BOOT BLOCK
 - boot:

@@ -37,7 +37,7 @@ actions:
     to: downloads
     images:
       image:
-        url: #project_url#/#branch#/#architecture#/cip-core-image-security-cip-core-#distribution#-#architecture#.swu
+        url: #project_url#/#branch#/#architecture#/cip-core-#distribution#-cip-core-image-security/#architecture#.swu
 
 - deploy:
     timeout:
@@ -48,7 +48,7 @@ actions:
         image_arg: '-drive file={system},discard=unmap,if=none,id=disk,format=raw -m 1G -serial mon:stdio
                     -nographic -netdev user,id=net,hostfwd=tcp:127.0.0.1:22222-:22 -chardev socket,id=chrtpm,path=/tmp/qemu-swtpm.sock
                     -tpmdev emulator,id=tpm0,chardev=chrtpm #imageargs#'
-        url: #project_url#/#branch#/#architecture#/cip-core-image-security-cip-core-#distribution#-#architecture#.wic.xz
+        url: #project_url#/#branch#/#architecture#/cip-core-#distribution#-cip-core-image-security/#architecture#.wic.xz
         compression: xz
 
       #Firmware#
