@@ -24,17 +24,18 @@ DEPLOY=$7
 # Reproducible Builds specific variables
 RB_BUILD_NUM=$8
 DEPLOY_DIR=build/tmp/deploy/images/$TARGET
-IMAGE_PATH=cip-core-${DISTRO_CODENAME}-cip-core-image
+IMAGE_ID=cip-core-${DISTRO_CODENAME}-cip-core-image
+IMAGE_PATH=$IMAGE_ID/$TARGET
 if [ "${EXTENSION}" != "none" ]; then
 	if [ "${EXTENSION}" = "security" ]; then
-		IMAGE_PATH=cip-core-$DISTRO_CODENAME-cip-core-image-$EXTENSION
+		IMAGE_PATH=$IMAGE_ID-$EXTENSION/$TARGET
 	else
-		IMAGE_PATH=cip-core-image-cip-core-$DISTRO_CODENAME-$TARGET-$EXTENSION
+		IMAGE_PATH=$IMAGE_ID/$TARGET-$EXTENSION
 	fi
 fi
 
-BASE_PATH=$DEPLOY_DIR/$IMAGE_PATH/$TARGET
-S3_TARGET=s3://download2.cip-project.org/cip-core/$REF/$TARGET/$IMAGE_PATH
+BASE_PATH=$DEPLOY_DIR/$IMAGE_PATH
+S3_TARGET=s3://download2.cip-project.org/cip-core/$REF/$TARGET/$IMAGE_PATH/
 
 if [ -n "${RB_BUILD_NUM}" ]; then
 	S3_TARGET="${S3_TARGET}rb/${RB_BUILD_NUM}/"
@@ -67,8 +68,8 @@ if [ -f "${BASE_PATH}.wic" ]; then
 		aws s3 cp --no-progress --acl public-read "${BASE_PATH}.wic.xz" "${S3_TARGET}"
 		aws s3 cp --no-progress --acl public-read "${BASE_PATH}.wic.bmap" "${S3_TARGET}"
 
-		if [ -f "$DEPLOY_DIR/$IMAGE_PATH/firmware.bin" ]; then
-			aws s3 cp --no-progress --acl public-read "$DEPLOY_DIR/$IMAGE_PATH/firmware.bin" "${S3_TARGET}"
+		if [ -f "$DEPLOY_DIR/$IMAGE_ID/firmware.bin" ]; then
+			aws s3 cp --no-progress --acl public-read "$DEPLOY_DIR/$IMAGE_ID/firmware.bin" "${S3_TARGET}"
 		fi
 	fi
 else
@@ -80,15 +81,15 @@ else
 	if [ "${NO_KERNEL}" = "enable" ]; then
 		echo "The image does not include the linux kernel. Therefore, kernel related files will not be uploaded."
 	else
-		KERNEL_IMAGE="$BASE_PATH-vmlinu[xz]"
+		KERNEL_IMAGE="$DEPLOY_DIR/$IMAGE_ID/vmlinu[xz]"
 		# iwg20m workaround
-		if [ -f "$DEPLOY_DIR/$IMAGE_PATH/zImage" ]; then
-			KERNEL_IMAGE=$DEPLOY_DIR/$IMAGE_PATH/zImage
+		if [ -f "$DEPLOY_DIR/$IMAGE_ID/zImage" ]; then
+			KERNEL_IMAGE=$DEPLOY_DIR/$IMAGE_ID/zImage
 		fi
 
 		# shellcheck disable=SC2086
 		aws s3 cp --no-progress --acl public-read $KERNEL_IMAGE "${S3_TARGET}"
-		aws s3 cp --no-progress --acl public-read "${BASE_PATH}-initrd.img" "${S3_TARGET}"
+		aws s3 cp --no-progress --acl public-read "${DEPLOY_DIR}-initrd.img" "${S3_TARGET}"
 
 		if [ "$DTB" != "none" ]; then
 			aws s3 cp --no-progress --acl public-read "$DEPLOY_DIR"/*/"$DTB" "${S3_TARGET}"
@@ -112,5 +113,5 @@ if ! echo "$CI_JOB_NAME" | grep -q "$1"; then
 	DPKG_STATUS_FILENAME=${CI_JOB_NAME#build:}-$1.dpkg_status
 fi
 if [ -z "${RB_BUILD_NUM}" ]; then
-	aws s3 cp --no-progress "$DEPLOY_DIR"/"$IMAGE_PATH"/*.dpkg_status s3://download.cip-project.org/cip-core/cve-checks/dpkg-status/"$DPKG_STATUS_FILENAME"
+	aws s3 cp --no-progress "$DEPLOY_DIR"/"$IMAGE_ID"/*.dpkg_status s3://download.cip-project.org/cip-core/cve-checks/dpkg-status/"$DPKG_STATUS_FILENAME"
 fi
