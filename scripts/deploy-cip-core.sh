@@ -34,7 +34,7 @@ if [ "${EXTENSION}" != "none" ]; then
 fi
 
 BASE_PATH=$DEPLOY_DIR/$IMAGE_PATH/$TARGET
-S3_TARGET=s3://download2.cip-project.org/cip-core/$REF/$TARGET/
+S3_TARGET=s3://download2.cip-project.org/cip-core/$REF/$TARGET/$IMAGE_PATH
 
 if [ -n "${RB_BUILD_NUM}" ]; then
 	S3_TARGET="${S3_TARGET}rb/${RB_BUILD_NUM}/"
