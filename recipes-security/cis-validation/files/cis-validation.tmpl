@@ -1,0 +1,65 @@
+#!/bin/bash
+# Copyright (c) Siemens AG, 2026
+# SPDX-License-Identifier: MIT
+
+tmp_root=$(mktemp -d) || exit 1
+default_file_mounted=0
+tmp_root_mounted=0
+
+trap '[ "$default_file_mounted" -eq 1 ] && umount /etc/default/cis-hardening; [ "$tmp_root_mounted" -eq 1 ] && umount "$tmp_root"; rm -rf "$tmp_root"' EXIT
+
+mount -t tmpfs -o mode=700,nodev,nosuid,exec tmpfs "$tmp_root" || exit 1
+tmp_root_mounted=1
+
+# Work in a temporary CIS tree
+cp -a "$CIS/etc" "$CIS/versions" "$CIS/bin" "$tmp_root/" || exit 1
+
+# Redirect CIS_CONF_DIR and CIS_VERSIONS_DIR via /etc/default/cis-hardening
+cp /etc/default/cis-hardening "$tmp_root/cis-hardening" || exit 1
+sed -i \
+    -e "s#^CIS_CONF_DIR=.*#CIS_CONF_DIR='$tmp_root/etc'#" \
+    -e "s#^CIS_VERSIONS_DIR=.*#CIS_VERSIONS_DIR='$tmp_root/versions'#" \
+    "$tmp_root/cis-hardening" || exit 1
+mount --bind "$tmp_root/cis-hardening" /etc/default/cis-hardening || exit 1
+default_file_mounted=1
+
+conf_dir="$tmp_root/etc/conf.d"
+versions_dir="$tmp_root/versions"
+
+# Create missing rule cfg files in the temporary conf.d.
+"$CIS"/bin/hardening.sh --create-config-files-only --allow-unsupported-distribution >/dev/null 2>&1 || true
+
+# Apply SSH overrides
+for ov in /usr/share/cis-validation/ssh-overrides/*.cfg; do
+    [ -r "$ov" ] && cat "$ov" >> "$conf_dir/$(basename "$ov")"
+done
+
+# Apply CIS overrides
+for ov in /usr/share/cis-validation/cis-overrides/*.cfg; do
+    [ -r "$ov" ] && install -m 644 "$ov" "$conf_dir/$(basename "$ov")"
+done
+
+# Drop non-CIS rules (99.*)
+find "$versions_dir" -name "99.*.sh" -delete
+
+AUDIT=$(
+    if ! "${CIS}"/bin/hardening.sh --audit --batch --allow-unsupported-distribution 2>&1; then
+        echo "CIS hardening script failed to execute." >&2
+        exit 1
+    fi
+) || exit 1
+
+echo "$AUDIT"
+
+CONFORMITY_PERCENTAGE=$(echo "$AUDIT" | grep -oP 'CONFORMITY_PERCENTAGE:\K[0-9.]+' | tail -n 1)
+
+if [ -z "$CONFORMITY_PERCENTAGE" ]; then
+    echo "Error: CONFORMITY_PERCENTAGE not found in CIS validation output." >&2
+    exit 1
+elif awk -v p="$CONFORMITY_PERCENTAGE" 'BEGIN {exit !(p == 100.00)}'; then
+    echo "CIS validation conformity is 100%."
+    exit 0
+else
+    echo "CIS validation conformity is ${CONFORMITY_PERCENTAGE}%, which is less than 100%." >&2
+    exit 1
+fi
