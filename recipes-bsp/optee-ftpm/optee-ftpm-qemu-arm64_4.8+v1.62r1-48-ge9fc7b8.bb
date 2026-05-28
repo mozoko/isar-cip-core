@@ -5,6 +5,7 @@
 #
 # Authors:
 #  Jan Kiszka <jan.kiszka@siemens.com>
+#  Benedikt Niedermayr <benedikt.niedermayr@siemens.com>
 #
 # SPDX-License-Identifier: MIT
 #
@@ -13,18 +14,17 @@ inherit optee-ftpm
 
 MAINTAINER = "cip-dev <cip-dev@lists.cip-project.org>"
 
-SRC_URI += " \
-    https://github.com/OP-TEE/optee_ftpm/archive/${SRCREV}.tar.gz;downloadfilename=optee_ftpm-${SRCREV}.tar.gz \
-    https://github.com/microsoft/ms-tpm-20-ref/archive/${SRCREV_ms-tpm}.tar.gz;name=ms-tpm;downloadfilename=ms-tpm-20-ref-${SRCREV_ms-tpm}.tar.gz \
+# Note: Referring to the forks which are currently upstreamed
+SRC_URI += "\
+    git://github.com/svenbauer-work/TPM.git;protocol=https;branch=fix/port-fixes-by-jan-kiszka;name=TPM;destsuffix=TPM \
+    git://github.com/svenbauer-work/optee_ftpm.git;protocol=https;branch=feat/support-tpm-v184;name=optee_ftpm;destsuffix=optee_ftpm \
     "
-SRCREV = "04cbc8a136e8fe6731a536f5fe145e2862feafd7"
-SRCREV_ms-tpm = "e9fc7b89d865536c46deb63f9c7d0121a3ded49c"
 
-SRC_URI[sha256sum] = "7adfa71c4b49affef7d4db2436d8d6b93cdc3aaa9bdc9cf795c0bf7488a4cac6"
-SRC_URI[ms-tpm.sha256sum] = "b77d092c0dde362adf6bc88a580ca7c8abe124d69bb734bf28f8904ae30494a4"
+SRCREV_TPM = "a9665960ddfb92b8a140cd8d37d29342ddb05b3b"
+SRCREV_optee_ftpm = "5f6f753d9f1428811420734d5f312249d0aa7ece"
 
-S = "${WORKDIR}/optee_ftpm-${SRCREV}"
-MS_TPM_20_REF_DIR = "ms-tpm-20-ref-${SRCREV_ms-tpm}"
+S = "${WORKDIR}/optee_ftpm"
+MS_TPM_20_REF_DIR = "TPM"
 
 OPTEE_NAME = "qemu-arm64"
 
