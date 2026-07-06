@@ -144,7 +144,6 @@ choice
 config KERNEL_4_4
 	bool "Kernel 4.4.x-cip"
 	depends on !ARCH_ARM64 && !ARCH_RISCV64
-	depends on !TARGET_TI_AM62PX_SK
 	depends on !DEBIAN_TRIXIE
 
 config KERNEL_4_19
