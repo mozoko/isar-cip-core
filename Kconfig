@@ -369,6 +369,15 @@ config FACTORY_RESET
 	  This adds the necessary packages to request and execute a factory
 	  reset of the persistent partition. See also ./doc/README.factory-reset.md.
 
+config CIS_HARDENING
+	bool "Harden image according to CIS rules"
+	depends on DEBIAN_TRIXIE
+	help
+	  This hardens the image according to the CIS Debian Linux Benchmarks
+	  and validates the successful application of those rules.
+	  No default rule selection is shipped: provide one via HARDENING_CFG
+	  in a cip-cis-rules-config bbappend. See ./doc/README.cis-hardening.md.
+
 config KAS_INCLUDE_DATA_ENCRYPTION
 	string
 	default "kas/opt/encrypt-data.yml" if IMAGE_DATA_ENCRYPTION
@@ -384,6 +393,10 @@ config KAS_INCLUDE_SEPARATE_HOME_PARTITION
 config KAS_INCLUDE_FACTORY_RESET
 	string
 	default "kas/opt/factory-reset.yml" if FACTORY_RESET
+
+config KAS_INCLUDE_CIS_HARDENING
+	string
+	default "kas/opt/cis-hardening.yml" if CIS_HARDENING
 
 config WDOG_TIMEOUT
 	int "EFI Boot Guard watchdog timeout in seconds"
