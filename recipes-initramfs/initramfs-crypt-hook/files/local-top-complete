@@ -371,5 +371,5 @@ if [ -x /usr/bin/tpm2_shutdown ]; then
 fi
 
 if [ -n "$watchdog_pid" ]; then
-	kill "$watchdog_pid"
+	kill "$watchdog_pid"  > /dev/null 2>&1
 fi
