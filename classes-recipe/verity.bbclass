@@ -63,7 +63,7 @@ create_verity_env_file() {
     while read KEY VAL; do
         printf '%s=%s\n' \
             "$(echo "$KEY" | tr '[:lower:]' '[:upper:]' | sed 's/ /_/g')" \
-            "$(echo "$VAL" | tr -d ' \t')" >> $ENV
+            "$(echo "$VAL" | tr -d ' \t' | sed -e 's/\[.*\]//' )" >> $ENV
     done < $input
 }
 
