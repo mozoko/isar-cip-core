@@ -123,7 +123,7 @@ reencrypt_existing_partition() {
 		;;
 	luks)
 		# Check if reencrypt was aborted
-		if /usr/sbin/cryptsetup luksDump --batch-mode "$1" \
+		if /usr/sbin/cryptsetup luksDump --batch-mode "$1" 2>/dev/null \
 				| grep -q "online-reencrypt-v2"; then
 			/usr/sbin/cryptsetup repair --batch-mode "$1" < "$2" || \
 				panic "cryptsetup repair was not successful"
@@ -273,7 +273,7 @@ for partition_set in $partition_sets; do
 
 	# If partition is already encrypted, decrypt and continue with next partition:
 	decrypted_part=/dev/mapper/"$crypt_mount_name"
-	if /usr/sbin/cryptsetup luksDump --batch-mode "$part_device" \
+	if /usr/sbin/cryptsetup luksDump --batch-mode "$part_device" 2>/dev/null \
 			| grep -q "systemd-tpm2\|clevis"; then
 		open_tpm2_partition "$part_device" "$crypt_mount_name" "$tpm_device"
 
@@ -286,7 +286,7 @@ for partition_set in $partition_sets; do
 	fi
 
 	# If partition contains an aborted reencrypt luks header, switch to reencrypt mode:
-	if /usr/sbin/cryptsetup luksDump --batch-mode "${part_device}" \
+	if /usr/sbin/cryptsetup luksDump --batch-mode "${part_device}" 2>/dev/null \
 			| grep -q "online-reencrypt-v2"; then
 		partition_format="reencrypt"
 	fi
@@ -337,7 +337,7 @@ for partition_set in $partition_sets; do
 			# header, but no TPM2 token
 			if cmp -s -n "$(( 10 * 1024 * 1024 ))" "${part_device}" /dev/zero || \
 				( [ "$(get_fstype "${part_device}")" = "luks" ] && \
-				! ( /usr/sbin/cryptsetup luksDump --batch-mode "$part_device" |
+				! ( /usr/sbin/cryptsetup luksDump --batch-mode "$part_device" 2>/dev/null |
 					grep -q "systemd-tpm2\|clevis" ) )
 			then
 				log_begin_msg "Encryption of ${part_device}"

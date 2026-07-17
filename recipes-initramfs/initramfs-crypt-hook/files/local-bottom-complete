@@ -74,7 +74,7 @@ for partition_set in $partition_sets; do
 	if [ -z "$partition_mountpoint" ]; then
 		continue
 	fi
-	if /usr/sbin/cryptsetup luksDump --batch-mode "$part_device" \
+	if /usr/sbin/cryptsetup luksDump --batch-mode "$part_device" 2>/dev/null \
 			| grep -q "luks2"; then
 		mount_partition "$decrypted_part" "${rootmnt}""$partition_mountpoint"
 	else
