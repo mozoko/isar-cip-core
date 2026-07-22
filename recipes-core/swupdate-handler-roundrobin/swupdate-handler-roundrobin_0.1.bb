@@ -32,14 +32,6 @@ SWUPDATE_LUA_VERSION:bookworm = "5.3"
 SWUPDATE_LUA_VERSION:bullseye = "5.3"
 SWUPDATE_LUA_VERSION:buster = "5.3"
 
-SWUPDATE_ADDITIONAL_LUA_VERSIONS ??= "5.3"
-
-do_prepare_build:append() {
-    for lua_version in ${SWUPDATE_ADDITIONAL_LUA_VERSIONS}; do
-        echo "usr/share/lua/${SWUPDATE_LUA_VERSION} usr/share/lua/$lua_version" >> ${WORKDIR}/${PN}-${PV}/debian/${PN}.links
-    done
-}
-
 do_install[cleandirs] = "${D}/etc \
                          ${D}/usr/share/lua/${SWUPDATE_LUA_VERSION}"
 do_install() {
