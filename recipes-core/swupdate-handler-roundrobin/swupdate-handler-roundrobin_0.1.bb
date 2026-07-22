@@ -25,7 +25,13 @@ SRC_URI += "${@('file://' + d.getVar('SWUPDATE_ROUND_ROBIN_HANDLER_CONFIG')) if 
 
 # The lua version used by swupdate to search for additional handler is hard coded in debian/rules
 # see https://salsa.debian.org/debian/swupdate/-/blob/6ccd44a8539ebb880bf0dac408d5db5de7e2de99/debian/rules#L13
-SWUPDATE_LUA_VERSION ??= "5.4"
+
+SWUPDATE_LUA_VERSION = "5.5"
+SWUPDATE_LUA_VERSION:trixie = "5.4"
+SWUPDATE_LUA_VERSION:bookworm = "5.3"
+SWUPDATE_LUA_VERSION:bullseye = "5.3"
+SWUPDATE_LUA_VERSION:buster = "5.3"
+
 SWUPDATE_ADDITIONAL_LUA_VERSIONS ??= "5.3"
 
 do_prepare_build:append() {
