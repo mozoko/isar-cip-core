@@ -19,12 +19,18 @@ DEBIAN_PROVIDES := "${PN}"
 
 PN .= "-${MACHINE}"
 
-SRC_URI = "file://swupdate.cfg \
+SRC_URI = "file://swupdate.cfg.tmpl \
            file://hwrevision.tmpl"
 
+SWUPDATE_DIGEST_PROVIDER = "digest-provider = "pkcs#7mbedtls";"
+SWUPDATE_DIGEST_PROVIDER:trixie = ""
+SWUPDATE_DIGEST_PROVIDER:bookworm = ""
+SWUPDATE_DIGEST_PROVIDER:bullseye = ""
+SWUPDATE_DIGEST_PROVIDER:buster = ""
+
 MACHINE_HW_VERSION ??= "cip-core-1.0"
-TEMPLATE_FILES += "hwrevision.tmpl"
-TEMPLATE_VARS += "MACHINE MACHINE_HW_VERSION"
+TEMPLATE_FILES += "hwrevision.tmpl swupdate.cfg.tmpl"
+TEMPLATE_VARS += "MACHINE MACHINE_HW_VERSION SWUPDATE_DIGEST_PROVIDER"
 
 do_install[cleandirs] = "${D}/etc/"
 do_install() {
