@@ -740,6 +740,7 @@ test:qemu-amd64-IEC-sid:
    - .test-cip-core-sid
   variables:
     target: qemu-amd64
+    release: sid
     test_function: IEC
     iec_test_timeout: 40
 
@@ -749,6 +750,7 @@ test:qemu-arm64-IEC-sid:
   needs: ["build:qemu-arm64-base-sid"]
   variables:
     target: qemu-arm64
+    release: sid
     test_function: IEC
     iec_test_timeout: 40
 
@@ -758,6 +760,7 @@ test:qemu-arm-IEC-sid:
   needs: ["build:qemu-arm-base-sid"]
   variables:
     target: qemu-arm
+    release: sid
     test_function: IEC
     iec_test_timeout: 40
 
