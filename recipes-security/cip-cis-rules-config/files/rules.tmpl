@@ -1,0 +1,19 @@
+#!/usr/bin/make -f
+# Copyright (c) Siemens AG, 2026
+# SPDX-License-Identifier: MIT
+PACKAGE	       := ${PN}
+CONFIG_JSON    := ${HARDENING_CFG_NAME}
+DESTDIR        := debian/$(PACKAGE)
+
+%:
+	dh $@
+
+# Copy enabled config snippets into the main package staging tree.
+# Install the rule-selection config and kernel fragment into the dev package
+# so that build systems and validation tools can consume them.
+override_dh_auto_install:
+	python3 scripts/enable-cis-rules.py \
+		--config $(CONFIG_JSON) \
+		--snippets-dir /usr/share/cip-cis-rules \
+		--output-dir $(DESTDIR)
+	dh_auto_install

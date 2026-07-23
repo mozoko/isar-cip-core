@@ -1,0 +1,124 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "config.schema.json",
+  "title": "CIP CIS Hardening Rules",
+  "description": "Schema for the config.json file produced by select-hardenings.py",
+  "type": "object",
+  "required": ["level", "rules"],
+  "additionalProperties": false,
+  "properties": {
+    "level": {
+      "type": "integer",
+      "description": "The selected CIS hardening level",
+      "enum": [1, 2, 3, 4, 5]
+    },
+    "rules": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/$defs/ruleWrapper" }
+    }
+  },
+  "$comment": "For each possible selected level L, when the selected level == L every rule whose minimum level is <= L must carry a justification if it is not applied (apply == false).",
+  "allOf": [
+    { "$ref": "#/$defs/requireJustificationL1" },
+    { "$ref": "#/$defs/requireJustificationL2" },
+    { "$ref": "#/$defs/requireJustificationL3" },
+    { "$ref": "#/$defs/requireJustificationL4" },
+    { "$ref": "#/$defs/requireJustificationL5" }
+  ],
+  "$defs": {
+    "ruleWrapper": {
+      "type": "object",
+      "required": ["rule"],
+      "additionalProperties": false,
+      "properties": {
+        "rule": {
+          "type": "object",
+          "required": ["name", "description", "level", "apply"],
+          "additionalProperties": false,
+          "properties": {
+            "name": {
+              "type": "string",
+              "description": "CIS rule identifier, e.g. '1.1.1.1'",
+              "pattern": "^[0-9]+(\\.[0-9]+)*$"
+            },
+            "description": {
+              "type": "string",
+              "description": "Short description of the hardening rule",
+              "minLength": 1
+            },
+            "level": {
+              "type": "integer",
+              "description": "Minimum CIS hardening level at which this rule is required",
+              "enum": [1, 2, 3, 4, 5]
+            },
+            "apply": {
+              "type": "boolean",
+              "description": "Whether the rule is currently enabled in the configuration"
+            },
+            "justification": {
+              "type": "string",
+              "description": "Reason for not applying a rule that is required by the selected hardening level",
+              "minLength": 1
+            },
+            "value": {
+              "type": "string",
+              "description": "Optional parameter value for rules that require site-specific configuration (e.g. group names)",
+              "minLength": 1
+            }
+          }
+        }
+      }
+    },
+    "requireJustificationL1": {
+      "if": { "required": ["level"], "properties": { "level": { "const": 1 } } },
+      "then": { "properties": { "rules": { "items": { "properties": { "rule": {
+        "if": {
+          "required": ["level", "apply"],
+          "properties": { "level": { "enum": [1] }, "apply": { "const": false } }
+        },
+        "then": { "required": ["justification"] }
+      } } } } } }
+    },
+    "requireJustificationL2": {
+      "if": { "required": ["level"], "properties": { "level": { "const": 2 } } },
+      "then": { "properties": { "rules": { "items": { "properties": { "rule": {
+        "if": {
+          "required": ["level", "apply"],
+          "properties": { "level": { "enum": [1, 2] }, "apply": { "const": false } }
+        },
+        "then": { "required": ["justification"] }
+      } } } } } }
+    },
+    "requireJustificationL3": {
+      "if": { "required": ["level"], "properties": { "level": { "const": 3 } } },
+      "then": { "properties": { "rules": { "items": { "properties": { "rule": {
+        "if": {
+          "required": ["level", "apply"],
+          "properties": { "level": { "enum": [1, 2, 3] }, "apply": { "const": false } }
+        },
+        "then": { "required": ["justification"] }
+      } } } } } }
+    },
+    "requireJustificationL4": {
+      "if": { "required": ["level"], "properties": { "level": { "const": 4 } } },
+      "then": { "properties": { "rules": { "items": { "properties": { "rule": {
+        "if": {
+          "required": ["level", "apply"],
+          "properties": { "level": { "enum": [1, 2, 3, 4] }, "apply": { "const": false } }
+        },
+        "then": { "required": ["justification"] }
+      } } } } } }
+    },
+    "requireJustificationL5": {
+      "if": { "required": ["level"], "properties": { "level": { "const": 5 } } },
+      "then": { "properties": { "rules": { "items": { "properties": { "rule": {
+        "if": {
+          "required": ["level", "apply"],
+          "properties": { "level": { "enum": [1, 2, 3, 4, 5] }, "apply": { "const": false } }
+        },
+        "then": { "required": ["justification"] }
+      } } } } } }
+    }
+  }
+}

@@ -1,0 +1,31 @@
+#!/bin/sh
+# Copyright (c) Siemens AG, 2026
+# SPDX-License-Identifier: MIT
+
+set -e
+
+CIP_CIS_CONF_DIR=/usr/share/cip-cis-rules/configuration
+
+case "$1" in
+    configure)
+        if [ -d "$CIP_CIS_CONF_DIR" ]; then
+            for script in "$CIP_CIS_CONF_DIR"/*.sh; do
+                [ -r "$script" ] || continue
+                if ! sh "$script"; then
+                    echo "cip-cis-rules: $(basename "$script") failed" >&2
+                    exit 1
+                fi
+            done
+        fi
+        ;;
+    abort-upgrade|abort-remove|abort-deconfigure)
+        ;;
+    *)
+        echo "postinst called with unknown argument '$1'" >&2
+        exit 1
+        ;;
+esac
+
+#DEBHELPER#
+
+exit 0

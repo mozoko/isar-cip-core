@@ -1,0 +1,1760 @@
+{
+  "level": 2,
+  "rules": [
+    {
+      "rule": {
+        "name": "1.1.10",
+        "description": "var tmp noexec",
+        "level": 3,
+        "apply": false
+      }
+    },
+    {
+      "rule": {
+        "name": "1.1.11",
+        "description": "var log partition",
+        "level": 3,
+        "apply": false
+      }
+    },
+    {
+      "rule": {
+        "name": "1.1.11.1",
+        "description": "var log noexec",
+        "level": 3,
+        "apply": false
+      }
+    },
+    {
+      "rule": {
+        "name": "1.1.11.2",
+        "description": "var log nosuid",
+        "level": 2,
+        "apply": false,
+        "justification": "Not applicable: no separate /var/log partition is configured."
+      }
+    },
+    {
+      "rule": {
+        "name": "1.1.11.3",
+        "description": "var log nodev",
+        "level": 2,
+        "apply": false,
+        "justification": "Not applicable: no separate /var/log partition is configured."
+      }
+    },
+    {
+      "rule": {
+        "name": "1.1.12",
+        "description": "var log audit partition",
+        "level": 4,
+        "apply": false
+      }
+    },
+    {
+      "rule": {
+        "name": "1.1.12.1",
+        "description": "var log audit noexec",
+        "level": 3,
+        "apply": false
+      }
+    },
+    {
+      "rule": {
+        "name": "1.1.12.2",
+        "description": "var log audit nosuid",
+        "level": 2,
+        "apply": false,
+        "justification": "Not applicable: no separate /var/log/audit partition is configured."
+      }
+    },
+    {
+      "rule": {
+        "name": "1.1.12.3",
+        "description": "var log audit nodev",
+        "level": 2,
+        "apply": false,
+        "justification": "Not applicable: no separate /var/log/audit partition is configured."
+      }
+    },
+    {
+      "rule": {
+        "name": "1.1.13",
+        "description": "home partition",
+        "level": 3,
+        "apply": false
+      }
+    },
+    {
+      "rule": {
+        "name": "1.1.14",
+        "description": "home nodev",
+        "level": 2,
+        "apply": false,
+        "justification": "Not applicable: no separate /home partition is configured."
+      }
+    },
+    {
+      "rule": {
+        "name": "1.1.14.1",
+        "description": "home nosuid",
+        "level": 2,
+        "apply": false,
+        "justification": "Not applicable: no separate /home partition is configured."
+      }
+    },
+    {
+      "rule": {
+        "name": "1.1.15",
+        "description": "run shm nodev",
+        "level": 2,
+        "apply": true
+      }
+    },
+    {
+      "rule": {
+        "name": "1.1.16",
+        "description": "run shm nosuid",
+        "level": 2,
+        "apply": true
+      }
+    },
+    {
+      "rule": {
+        "name": "1.1.17",
+        "description": "run shm noexec",
+        "level": 3,
+        "apply": false
+      }
+    },
+    {
+      "rule": {
+        "name": "1.1.18",
+        "description": "removable device nodev",
+        "level": 2,
+        "apply": true
+      }
+    },
+    {
+      "rule": {
+        "name": "1.1.19",
+        "description": "removable device nosuid",
+        "level": 2,
+        "apply": true
+      }
+    },
+    {
+      "rule": {
+        "name": "1.1.1.1",
+        "description": "disable freevxfs",
+        "level": 2,
+        "apply": true
+      }
+    },
+    {
+      "rule": {
+        "name": "1.1.1.2",
+        "description": "disable jffs2",
+        "level": 2,
+        "apply": true
+      }
+    },
+    {
+      "rule": {
+        "name": "1.1.1.3",
+        "description": "disable hfs",
+        "level": 2,
+        "apply": true
+      }
+    },
+    {
+      "rule": {
+        "name": "1.1.1.4",
+        "description": "disable hfsplus",
+        "level": 2,
+        "apply": true
+      }
+    },
+    {
+      "rule": {
+        "name": "1.1.1.5",
+        "description": "disable squashfs",
+        "level": 2,
+        "apply": false,
+        "justification": "cip core requires squashfs for ro rootfs"
+      }
+    },
+    {
+      "rule": {
+        "name": "1.1.1.6",
+        "description": "disable udf",
+        "level": 2,
+        "apply": true
+      }
+    },
+    {
+      "rule": {
+        "name": "1.1.1.7",
+        "description": "restrict fat",
+        "level": 5,
+        "apply": false
+      }
+    },
+    {
+      "rule": {
+        "name": "1.1.1.8",
+        "description": "disable cramfs",
+        "level": 2,
+        "apply": true
+      }
+    },
+    {
+      "rule": {
+        "name": "1.1.2",
+        "description": "tmp partition",
+        "level": 3,
+        "apply": false
+      }
+    },
+    {
+      "rule": {
+        "name": "1.1.20",
+        "description": "removable device noexec",
+        "level": 2,
+        "apply": true
+      }
+    },
+    {
+      "rule": {
+        "name": "1.1.21",
+        "description": "sticky bit world writable folder",
+        "level": 2,
+        "apply": true
+      }
+    },
+    {
+      "rule": {
+        "name": "1.1.22",
+        "description": "disable automounting",
+        "level": 2,
+        "apply": true
+      }
+    },
+    {
+      "rule": {
+        "name": "1.1.23",
+        "description": "disable usb storage",
+        "level": 2,
+        "apply": true
+      }
+    },
+    {
+      "rule": {
+        "name": "1.1.3",
+        "description": "tmp nodev",
+        "level": 2,
+        "apply": true
+      }
+    },
+    {
+      "rule": {
+        "name": "1.1.4",
+        "description": "tmp nosuid",
+        "level": 2,
+        "apply": true
+      }
+    },
+    {
+      "rule": {
+        "name": "1.1.5",
+        "description": "tmp noexec",
+        "level": 3,
+        "apply": false
+      }
+    },
+    {
+      "rule": {
+        "name": "1.1.6",
+        "description": "var partition",
+        "level": 3,
+        "apply": false
+      }
+    },
+    {
+      "rule": {
+        "name": "1.1.6.1",
+        "description": "var nodev",
+        "level": 2,
+        "apply": false,
+        "justification": "Not applicable: no separate /var partition is configured."
+      }
+    },
+    {
+      "rule": {
+        "name": "1.1.6.2",
+        "description": "var nosuid",
+        "level": 2,
+        "apply": false,
+        "justification": "Not applicable: no separate /var partition is configured."
+      }
+    },
+    {
+      "rule": {
+        "name": "1.1.7",
+        "description": "var tmp partition",
+        "level": 3,
+        "apply": false
+      }
+    },
+    {
+      "rule": {
+        "name": "1.1.8",
+        "description": "var tmp nodev",
+        "level": 2,
+        "apply": false,
+        "justification": "Not applicable: no separate /var/tmp partition is configured."
+      }
+    },
+    {
+      "rule": {
+        "name": "1.1.9",
+        "description": "var tmp nosuid",
+        "level": 2,
+        "apply": false,
+        "justification": "Not applicable: no separate /var/tmp partition is configured."
+      }
+    },
+    {
+      "rule": {
+        "name": "1.3.1",
+        "description": "install sudo",
+        "level": 2,
+        "apply": true
+      }
+    },
+    {
+      "rule": {
+        "name": "1.3.2",
+        "description": "pty sudo",
+        "level": 2,
+        "apply": true
+      }
+    },
+    {
+      "rule": {
+        "name": "1.3.3",
+        "description": "logfile sudo",
+        "level": 2,
+        "apply": true
+      }
+    },
+    {
+      "rule": {
+        "name": "1.4.1",
+        "description": "install tripwire",
+        "level": 4,
+        "apply": false
+      }
+    },
+    {
+      "rule": {
+        "name": "1.4.2",
+        "description": "tripwire cron",
+        "level": 4,
+        "apply": false
+      }
+    },
+    {
+      "rule": {
+        "name": "1.5.1",
+        "description": "bootloader ownership",
+        "level": 1,
+        "apply": false,
+        "justification": "Not applicable: the GRUB bootloader is not used."
+      }
+    },
+    {
+      "rule": {
+        "name": "1.5.2",
+        "description": "bootloader password",
+        "level": 3,
+        "apply": false
+      }
+    },
+    {
+      "rule": {
+        "name": "1.5.3",
+        "description": "root password",
+        "level": 3,
+        "apply": false
+      }
+    },
+    {
+      "rule": {
+        "name": "1.6.1",
+        "description": "enable nx support",
+        "level": 2,
+        "apply": true
+      }
+    },
+    {
+      "rule": {
+        "name": "1.6.2",
+        "description": "enable randomized vm placement",
+        "level": 2,
+        "apply": true
+      }
+    },
+    {
+      "rule": {
+        "name": "1.6.3",
+        "description": "disable prelink",
+        "level": 2,
+        "apply": true
+      }
+    },
+    {
+      "rule": {
+        "name": "1.6.3.1",
+        "description": "disable apport",
+        "level": 2,
+        "apply": true
+      }
+    },
+    {
+      "rule": {
+        "name": "1.6.4",
+        "description": "restrict core dumps",
+        "level": 2,
+        "apply": true
+      }
+    },
+    {
+      "rule": {
+        "name": "1.7.1.1",
+        "description": "install apparmor",
+        "level": 3,
+        "apply": false
+      }
+    },
+    {
+      "rule": {
+        "name": "1.7.1.2",
+        "description": "enable apparmor",
+        "level": 3,
+        "apply": false
+      }
+    },
+    {
+      "rule": {
+        "name": "1.7.1.3",
+        "description": "enforce or complain apparmor",
+        "level": 3,
+        "apply": false
+      }
+    },
+    {
+      "rule": {
+        "name": "1.7.1.4",
+        "description": "enforcing apparmor",
+        "level": 3,
+        "apply": false
+      }
+    },
+    {
+      "rule": {
+        "name": "1.8.1.1",
+        "description": "remove os info motd",
+        "level": 3,
+        "apply": false
+      }
+    },
+    {
+      "rule": {
+        "name": "1.8.1.2",
+        "description": "remove os info issue",
+        "level": 3,
+        "apply": false
+      }
+    },
+    {
+      "rule": {
+        "name": "1.8.1.3",
+        "description": "remove os info issue net",
+        "level": 3,
+        "apply": false
+      }
+    },
+    {
+      "rule": {
+        "name": "1.8.1.4",
+        "description": "motd perms",
+        "level": 3,
+        "apply": false
+      }
+    },
+    {
+      "rule": {
+        "name": "1.8.1.5",
+        "description": "etc issue perms",
+        "level": 3,
+        "apply": false
+      }
+    },
+    {
+      "rule": {
+        "name": "1.8.1.6",
+        "description": "etc issue net perms",
+        "level": 3,
+        "apply": false
+      }
+    },
+    {
+      "rule": {
+        "name": "1.8.2",
+        "description": "graphical warning banners",
+        "level": 3,
+        "apply": false
+      }
+    },
+    {
+      "rule": {
+        "name": "2.1.1",
+        "description": "disable xinetd",
+        "level": 3,
+        "apply": false
+      }
+    },
+    {
+      "rule": {
+        "name": "2.1.2",
+        "description": "disable bsd inetd",
+        "level": 3,
+        "apply": false
+      }
+    },
+    {
+      "rule": {
+        "name": "2.2.10",
+        "description": "disable http server",
+        "level": 3,
+        "apply": false
+      }
+    },
+    {
+      "rule": {
+        "name": "2.2.11",
+        "description": "disable imap pop",
+        "level": 3,
+        "apply": false
+      }
+    },
+    {
+      "rule": {
+        "name": "2.2.12",
+        "description": "disable samba",
+        "level": 3,
+        "apply": false
+      }
+    },
+    {
+      "rule": {
+        "name": "2.2.13",
+        "description": "disable http proxy",
+        "level": 3,
+        "apply": false
+      }
+    },
+    {
+      "rule": {
+        "name": "2.2.14",
+        "description": "disable snmp server",
+        "level": 3,
+        "apply": false
+      }
+    },
+    {
+      "rule": {
+        "name": "2.2.15",
+        "description": "mta localhost",
+        "level": 3,
+        "apply": false
+      }
+    },
+    {
+      "rule": {
+        "name": "2.2.16",
+        "description": "disable rsync",
+        "level": 3,
+        "apply": false
+      }
+    },
+    {
+      "rule": {
+        "name": "2.2.17",
+        "description": "disable nis",
+        "level": 3,
+        "apply": false
+      }
+    },
+    {
+      "rule": {
+        "name": "2.2.1.1",
+        "description": "use time sync",
+        "level": 3,
+        "apply": false
+      }
+    },
+    {
+      "rule": {
+        "name": "2.2.1.2",
+        "description": "configure systemd-timesyncd",
+        "level": 4,
+        "apply": false
+      }
+    },
+    {
+      "rule": {
+        "name": "2.2.1.3",
+        "description": "configure chrony",
+        "level": 3,
+        "apply": false
+      }
+    },
+    {
+      "rule": {
+        "name": "2.2.1.4",
+        "description": "configure ntp",
+        "level": 3,
+        "apply": false
+      }
+    },
+    {
+      "rule": {
+        "name": "2.2.2",
+        "description": "disable xwindow system",
+        "level": 3,
+        "apply": false
+      }
+    },
+    {
+      "rule": {
+        "name": "2.2.3",
+        "description": "disable avahi server",
+        "level": 3,
+        "apply": false
+      }
+    },
+    {
+      "rule": {
+        "name": "2.2.4",
+        "description": "disable print server",
+        "level": 3,
+        "apply": false
+      }
+    },
+    {
+      "rule": {
+        "name": "2.2.5",
+        "description": "disable dhcp",
+        "level": 3,
+        "apply": false
+      }
+    },
+    {
+      "rule": {
+        "name": "2.2.6",
+        "description": "disable ldap",
+        "level": 3,
+        "apply": false
+      }
+    },
+    {
+      "rule": {
+        "name": "2.2.7",
+        "description": "disable nfs rpc",
+        "level": 3,
+        "apply": false
+      }
+    },
+    {
+      "rule": {
+        "name": "2.2.8",
+        "description": "disable dns server",
+        "level": 3,
+        "apply": false
+      }
+    },
+    {
+      "rule": {
+        "name": "2.2.9",
+        "description": "disable ftp",
+        "level": 3,
+        "apply": false
+      }
+    },
+    {
+      "rule": {
+        "name": "2.3.1",
+        "description": "disable nis",
+        "level": 3,
+        "apply": false
+      }
+    },
+    {
+      "rule": {
+        "name": "2.3.2",
+        "description": "disable rsh client",
+        "level": 2,
+        "apply": true
+      }
+    },
+    {
+      "rule": {
+        "name": "2.3.3",
+        "description": "disable talk client",
+        "level": 2,
+        "apply": true
+      }
+    },
+    {
+      "rule": {
+        "name": "2.3.4",
+        "description": "disable telnet client",
+        "level": 2,
+        "apply": true
+      }
+    },
+    {
+      "rule": {
+        "name": "2.3.5",
+        "description": "disable ldap client",
+        "level": 2,
+        "apply": true
+      }
+    },
+    {
+      "rule": {
+        "name": "3.1.1",
+        "description": "disable ipv6",
+        "level": 2,
+        "apply": true
+      }
+    },
+    {
+      "rule": {
+        "name": "3.1.2",
+        "description": "disable wireless",
+        "level": 3,
+        "apply": false
+      }
+    },
+    {
+      "rule": {
+        "name": "3.2.1",
+        "description": "disable send packet redirects",
+        "level": 2,
+        "apply": true
+      }
+    },
+    {
+      "rule": {
+        "name": "3.2.2",
+        "description": "disable ip forwarding",
+        "level": 3,
+        "apply": false
+      }
+    },
+    {
+      "rule": {
+        "name": "3.3.1",
+        "description": "disable source routed packets",
+        "level": 2,
+        "apply": true
+      }
+    },
+    {
+      "rule": {
+        "name": "3.3.2",
+        "description": "disable icmp redirect",
+        "level": 2,
+        "apply": true
+      }
+    },
+    {
+      "rule": {
+        "name": "3.3.3",
+        "description": "disable secure icmp redirect",
+        "level": 2,
+        "apply": true
+      }
+    },
+    {
+      "rule": {
+        "name": "3.3.4",
+        "description": "log martian packets",
+        "level": 2,
+        "apply": true
+      }
+    },
+    {
+      "rule": {
+        "name": "3.3.5",
+        "description": "ignore broadcast requests",
+        "level": 2,
+        "apply": true
+      }
+    },
+    {
+      "rule": {
+        "name": "3.3.6",
+        "description": "enable bad error message protection",
+        "level": 2,
+        "apply": true
+      }
+    },
+    {
+      "rule": {
+        "name": "3.3.7",
+        "description": "enable source route validation",
+        "level": 2,
+        "apply": true
+      }
+    },
+    {
+      "rule": {
+        "name": "3.3.8",
+        "description": "enable tcp syn cookies",
+        "level": 2,
+        "apply": true
+      }
+    },
+    {
+      "rule": {
+        "name": "3.3.9",
+        "description": "disable ipv6 router advertisement",
+        "level": 2,
+        "apply": true
+      }
+    },
+    {
+      "rule": {
+        "name": "3.5.1.1",
+        "description": "enable firewall",
+        "level": 2,
+        "apply": true
+      }
+    },
+    {
+      "rule": {
+        "name": "3.5.4.1.1",
+        "description": "net fw default policy drop",
+        "level": 2,
+        "apply": true
+      }
+    },
+    {
+      "rule": {
+        "name": "4.1.10",
+        "description": "record failed access file",
+        "level": 4,
+        "apply": false
+      }
+    },
+    {
+      "rule": {
+        "name": "4.1.11",
+        "description": "record privileged commands",
+        "level": 4,
+        "apply": false
+      }
+    },
+    {
+      "rule": {
+        "name": "4.1.12",
+        "description": "record successful mount",
+        "level": 4,
+        "apply": false
+      }
+    },
+    {
+      "rule": {
+        "name": "4.1.13",
+        "description": "record file deletions",
+        "level": 4,
+        "apply": false
+      }
+    },
+    {
+      "rule": {
+        "name": "4.1.14",
+        "description": "record sudoers edit",
+        "level": 4,
+        "apply": false
+      }
+    },
+    {
+      "rule": {
+        "name": "4.1.15",
+        "description": "record sudo usage",
+        "level": 4,
+        "apply": false
+      }
+    },
+    {
+      "rule": {
+        "name": "4.1.16",
+        "description": "record kernel modules",
+        "level": 4,
+        "apply": false
+      }
+    },
+    {
+      "rule": {
+        "name": "4.1.17",
+        "description": "freeze auditd conf",
+        "level": 4,
+        "apply": false
+      }
+    },
+    {
+      "rule": {
+        "name": "4.1.1.1",
+        "description": "install auditd",
+        "level": 4,
+        "apply": false
+      }
+    },
+    {
+      "rule": {
+        "name": "4.1.1.2",
+        "description": "enable auditd",
+        "level": 4,
+        "apply": false
+      }
+    },
+    {
+      "rule": {
+        "name": "4.1.1.3",
+        "description": "audit bootloader",
+        "level": 4,
+        "apply": false
+      }
+    },
+    {
+      "rule": {
+        "name": "4.1.1.4",
+        "description": "audit backlog limit",
+        "level": 4,
+        "apply": false
+      }
+    },
+    {
+      "rule": {
+        "name": "4.1.2.1",
+        "description": "audit log storage",
+        "level": 4,
+        "apply": false
+      }
+    },
+    {
+      "rule": {
+        "name": "4.1.2.2",
+        "description": "halt when audit log full",
+        "level": 4,
+        "apply": false
+      }
+    },
+    {
+      "rule": {
+        "name": "4.1.2.3",
+        "description": "keep all audit logs",
+        "level": 4,
+        "apply": false
+      }
+    },
+    {
+      "rule": {
+        "name": "4.1.3",
+        "description": "record date time edit",
+        "level": 4,
+        "apply": false
+      }
+    },
+    {
+      "rule": {
+        "name": "4.1.4",
+        "description": "record user group edit",
+        "level": 4,
+        "apply": false
+      }
+    },
+    {
+      "rule": {
+        "name": "4.1.5",
+        "description": "record network edit",
+        "level": 4,
+        "apply": false
+      }
+    },
+    {
+      "rule": {
+        "name": "4.1.6",
+        "description": "record mac edit",
+        "level": 4,
+        "apply": false
+      }
+    },
+    {
+      "rule": {
+        "name": "4.1.7",
+        "description": "record login logout",
+        "level": 4,
+        "apply": false
+      }
+    },
+    {
+      "rule": {
+        "name": "4.1.8",
+        "description": "record session init",
+        "level": 4,
+        "apply": false
+      }
+    },
+    {
+      "rule": {
+        "name": "4.1.9",
+        "description": "record dac edit",
+        "level": 4,
+        "apply": false
+      }
+    },
+    {
+      "rule": {
+        "name": "4.2.1.1",
+        "description": "install syslog-ng",
+        "level": 3,
+        "apply": false
+      }
+    },
+    {
+      "rule": {
+        "name": "4.2.1.2",
+        "description": "enable syslog-ng",
+        "level": 3,
+        "apply": false
+      }
+    },
+    {
+      "rule": {
+        "name": "4.2.1.3",
+        "description": "configure syslog-ng",
+        "level": 3,
+        "apply": false
+      }
+    },
+    {
+      "rule": {
+        "name": "4.2.1.4",
+        "description": "syslog ng logfiles perm",
+        "level": 3,
+        "apply": false
+      }
+    },
+    {
+      "rule": {
+        "name": "4.2.1.5",
+        "description": "syslog-ng remote host",
+        "level": 3,
+        "apply": false
+      }
+    },
+    {
+      "rule": {
+        "name": "4.2.1.6",
+        "description": "remote syslog-ng acl",
+        "level": 3,
+        "apply": false
+      }
+    },
+    {
+      "rule": {
+        "name": "4.2.2.1",
+        "description": "journald logs",
+        "level": 3,
+        "apply": false
+      }
+    },
+    {
+      "rule": {
+        "name": "4.2.2.2",
+        "description": "journald compress",
+        "level": 3,
+        "apply": false
+      }
+    },
+    {
+      "rule": {
+        "name": "4.2.2.3",
+        "description": "journald write persistent",
+        "level": 3,
+        "apply": false
+      }
+    },
+    {
+      "rule": {
+        "name": "4.2.3",
+        "description": "logs permissions",
+        "level": 2,
+        "apply": true
+      }
+    },
+    {
+      "rule": {
+        "name": "4.4",
+        "description": "logrotate permissions",
+        "level": 3,
+        "apply": false
+      }
+    },
+    {
+      "rule": {
+        "name": "5.1.1",
+        "description": "enable cron",
+        "level": 3,
+        "apply": false
+      }
+    },
+    {
+      "rule": {
+        "name": "5.1.2",
+        "description": "crontab perm ownership",
+        "level": 1,
+        "apply": false,
+        "justification": "Not applicable: cron is not used on this system."
+      }
+    },
+    {
+      "rule": {
+        "name": "5.1.3",
+        "description": "cron hourly perm ownership",
+        "level": 1,
+        "apply": false,
+        "justification": "Not applicable: cron is not used on this system."
+      }
+    },
+    {
+      "rule": {
+        "name": "5.1.4",
+        "description": "cron daily perm ownership",
+        "level": 1,
+        "apply": false,
+        "justification": "Not applicable: cron is not used on this system."
+      }
+    },
+    {
+      "rule": {
+        "name": "5.1.5",
+        "description": "cron weekly perm ownership",
+        "level": 1,
+        "apply": false,
+        "justification": "Not applicable: cron is not used on this system."
+      }
+    },
+    {
+      "rule": {
+        "name": "5.1.6",
+        "description": "cron monthly perm ownership",
+        "level": 1,
+        "apply": false,
+        "justification": "Not applicable: cron is not used on this system."
+      }
+    },
+    {
+      "rule": {
+        "name": "5.1.7",
+        "description": "cron d perm ownership",
+        "level": 1,
+        "apply": false,
+        "justification": "Not applicable: cron is not used on this system."
+      }
+    },
+    {
+      "rule": {
+        "name": "5.1.8",
+        "description": "cron users",
+        "level": 2,
+        "apply": false,
+        "justification": "Not applicable: cron is not used on this system."
+      }
+    },
+    {
+      "rule": {
+        "name": "5.2.1",
+        "description": "sshd conf perm ownership",
+        "level": 1,
+        "apply": true
+      }
+    },
+    {
+      "rule": {
+        "name": "5.2.10",
+        "description": "disable root login",
+        "level": 3,
+        "apply": false
+      }
+    },
+    {
+      "rule": {
+        "name": "5.2.11",
+        "description": "disable sshd permitemptypasswords",
+        "level": 2,
+        "apply": true
+      }
+    },
+    {
+      "rule": {
+        "name": "5.2.12",
+        "description": "disable sshd setenv",
+        "level": 2,
+        "apply": true
+      }
+    },
+    {
+      "rule": {
+        "name": "5.2.13",
+        "description": "sshd ciphers",
+        "level": 2,
+        "apply": true
+      }
+    },
+    {
+      "rule": {
+        "name": "5.2.14",
+        "description": "ssh cry mac",
+        "level": 2,
+        "apply": true
+      }
+    },
+    {
+      "rule": {
+        "name": "5.2.15",
+        "description": "ssh cry kex",
+        "level": 2,
+        "apply": true
+      }
+    },
+    {
+      "rule": {
+        "name": "5.2.16",
+        "description": "sshd idle timeout",
+        "level": 3,
+        "apply": false
+      }
+    },
+    {
+      "rule": {
+        "name": "5.2.17",
+        "description": "sshd login grace time",
+        "level": 3,
+        "apply": false
+      }
+    },
+    {
+      "rule": {
+        "name": "5.2.18",
+        "description": "sshd limit access",
+        "level": 3,
+        "apply": false
+      }
+    },
+    {
+      "rule": {
+        "name": "5.2.19",
+        "description": "ssh banner",
+        "level": 3,
+        "apply": false
+      }
+    },
+    {
+      "rule": {
+        "name": "5.2.2",
+        "description": "ssh host private keys perm ownership",
+        "level": 1,
+        "apply": true
+      }
+    },
+    {
+      "rule": {
+        "name": "5.2.20",
+        "description": "enable ssh pam",
+        "level": 3,
+        "apply": false
+      }
+    },
+    {
+      "rule": {
+        "name": "5.2.21",
+        "description": "disable ssh allow tcp forwarding",
+        "level": 3,
+        "apply": false
+      }
+    },
+    {
+      "rule": {
+        "name": "5.2.22",
+        "description": "configure ssh max startups",
+        "level": 3,
+        "apply": false
+      }
+    },
+    {
+      "rule": {
+        "name": "5.2.23",
+        "description": "limit ssh max sessions",
+        "level": 3,
+        "apply": false
+      }
+    },
+    {
+      "rule": {
+        "name": "5.2.3",
+        "description": "ssh host public keys perm ownership",
+        "level": 1,
+        "apply": true
+      }
+    },
+    {
+      "rule": {
+        "name": "5.2.4",
+        "description": "sshd protocol",
+        "level": 2,
+        "apply": true
+      }
+    },
+    {
+      "rule": {
+        "name": "5.2.5",
+        "description": "sshd loglevel",
+        "level": 2,
+        "apply": true
+      }
+    },
+    {
+      "rule": {
+        "name": "5.2.6",
+        "description": "disable x11 forwarding",
+        "level": 2,
+        "apply": true
+      }
+    },
+    {
+      "rule": {
+        "name": "5.2.7",
+        "description": "sshd maxauthtries",
+        "level": 2,
+        "apply": true
+      }
+    },
+    {
+      "rule": {
+        "name": "5.2.8",
+        "description": "enable sshd ignorerhosts",
+        "level": 2,
+        "apply": true
+      }
+    },
+    {
+      "rule": {
+        "name": "5.2.9",
+        "description": "disable sshd hostbasedauthentication",
+        "level": 2,
+        "apply": true
+      }
+    },
+    {
+      "rule": {
+        "name": "5.3.1",
+        "description": "enable pwquality",
+        "level": 2,
+        "apply": true
+      }
+    },
+    {
+      "rule": {
+        "name": "5.3.2",
+        "description": "enable lockout failed password",
+        "level": 3,
+        "apply": false
+      }
+    },
+    {
+      "rule": {
+        "name": "5.3.3",
+        "description": "limit password reuse",
+        "level": 3,
+        "apply": false
+      }
+    },
+    {
+      "rule": {
+        "name": "5.3.4",
+        "description": "acc pam sha512",
+        "level": 2,
+        "apply": true
+      }
+    },
+    {
+      "rule": {
+        "name": "5.4.1.1",
+        "description": "set password exp days",
+        "level": 3,
+        "apply": false
+      }
+    },
+    {
+      "rule": {
+        "name": "5.4.1.2",
+        "description": "set password min days change",
+        "level": 3,
+        "apply": false
+      }
+    },
+    {
+      "rule": {
+        "name": "5.4.1.3",
+        "description": "set password exp warning days",
+        "level": 3,
+        "apply": false
+      }
+    },
+    {
+      "rule": {
+        "name": "5.4.1.4",
+        "description": "lock inactive user account",
+        "level": 3,
+        "apply": false
+      }
+    },
+    {
+      "rule": {
+        "name": "5.4.1.5",
+        "description": "last password change past",
+        "level": 3,
+        "apply": false
+      }
+    },
+    {
+      "rule": {
+        "name": "5.4.2",
+        "description": "disable system accounts",
+        "level": 3,
+        "apply": false
+      }
+    },
+    {
+      "rule": {
+        "name": "5.4.3",
+        "description": "default root group",
+        "level": 2,
+        "apply": true
+      }
+    },
+    {
+      "rule": {
+        "name": "5.4.4",
+        "description": "default umask",
+        "level": 3,
+        "apply": false
+      }
+    },
+    {
+      "rule": {
+        "name": "5.4.5",
+        "description": "default timeout",
+        "level": 5,
+        "apply": false
+      }
+    },
+    {
+      "rule": {
+        "name": "5.5",
+        "description": "secure tty",
+        "level": 3,
+        "apply": false
+      }
+    },
+    {
+      "rule": {
+        "name": "5.6",
+        "description": "restrict su",
+        "level": 3,
+        "apply": false
+      }
+    },
+    {
+      "rule": {
+        "name": "6.1.10",
+        "description": "find world writable file",
+        "level": 3,
+        "apply": false
+      }
+    },
+    {
+      "rule": {
+        "name": "6.1.11",
+        "description": "find unowned files",
+        "level": 2,
+        "apply": true
+      }
+    },
+    {
+      "rule": {
+        "name": "6.1.12",
+        "description": "find ungrouped files",
+        "level": 2,
+        "apply": true
+      }
+    },
+    {
+      "rule": {
+        "name": "6.1.13",
+        "description": "find suid files",
+        "level": 2,
+        "apply": true
+      }
+    },
+    {
+      "rule": {
+        "name": "6.1.14",
+        "description": "find sgid files",
+        "level": 2,
+        "apply": true
+      }
+    },
+    {
+      "rule": {
+        "name": "6.1.2",
+        "description": "etc passwd permissions",
+        "level": 1,
+        "apply": true
+      }
+    },
+    {
+      "rule": {
+        "name": "6.1.3",
+        "description": "etc gshadow- permissions",
+        "level": 1,
+        "apply": true
+      }
+    },
+    {
+      "rule": {
+        "name": "6.1.4",
+        "description": "etc shadow permissions",
+        "level": 1,
+        "apply": true
+      }
+    },
+    {
+      "rule": {
+        "name": "6.1.5",
+        "description": "etc group permissions",
+        "level": 1,
+        "apply": true
+      }
+    },
+    {
+      "rule": {
+        "name": "6.1.6",
+        "description": "etc passwd- permissions",
+        "level": 1,
+        "apply": true
+      }
+    },
+    {
+      "rule": {
+        "name": "6.1.7",
+        "description": "etc shadow- permissions",
+        "level": 1,
+        "apply": true
+      }
+    },
+    {
+      "rule": {
+        "name": "6.1.8",
+        "description": "etc group- permissions",
+        "level": 1,
+        "apply": true
+      }
+    },
+    {
+      "rule": {
+        "name": "6.1.9",
+        "description": "etc gshadow permissions",
+        "level": 1,
+        "apply": true
+      }
+    },
+    {
+      "rule": {
+        "name": "6.2.1",
+        "description": "remove empty password field",
+        "level": 1,
+        "apply": true
+      }
+    },
+    {
+      "rule": {
+        "name": "6.2.10",
+        "description": "check user dot file perm",
+        "level": 2,
+        "apply": true
+      }
+    },
+    {
+      "rule": {
+        "name": "6.2.11",
+        "description": "find user forward files",
+        "level": 2,
+        "apply": true
+      }
+    },
+    {
+      "rule": {
+        "name": "6.2.12",
+        "description": "find user netrc files",
+        "level": 2,
+        "apply": true
+      }
+    },
+    {
+      "rule": {
+        "name": "6.2.13",
+        "description": "set perm on user netrc",
+        "level": 2,
+        "apply": true
+      }
+    },
+    {
+      "rule": {
+        "name": "6.2.14",
+        "description": "find user rhosts files",
+        "level": 2,
+        "apply": true
+      }
+    },
+    {
+      "rule": {
+        "name": "6.2.15",
+        "description": "find passwd group inconsistencies",
+        "level": 2,
+        "apply": true
+      }
+    },
+    {
+      "rule": {
+        "name": "6.2.16",
+        "description": "check duplicate uid",
+        "level": 2,
+        "apply": true
+      }
+    },
+    {
+      "rule": {
+        "name": "6.2.17",
+        "description": "check duplicate gid",
+        "level": 2,
+        "apply": true
+      }
+    },
+    {
+      "rule": {
+        "name": "6.2.18",
+        "description": "check duplicate username",
+        "level": 1,
+        "apply": true
+      }
+    },
+    {
+      "rule": {
+        "name": "6.2.19",
+        "description": "check duplicate groupname",
+        "level": 1,
+        "apply": true
+      }
+    },
+    {
+      "rule": {
+        "name": "6.2.2",
+        "description": "remove legacy passwd entries",
+        "level": 1,
+        "apply": true
+      }
+    },
+    {
+      "rule": {
+        "name": "6.2.20",
+        "description": "shadow group empty",
+        "level": 1,
+        "apply": true
+      }
+    },
+    {
+      "rule": {
+        "name": "6.2.3",
+        "description": "users homedir exist",
+        "level": 2,
+        "apply": true
+      }
+    },
+    {
+      "rule": {
+        "name": "6.2.4",
+        "description": "remove legacy shadow entries",
+        "level": 1,
+        "apply": true
+      }
+    },
+    {
+      "rule": {
+        "name": "6.2.5",
+        "description": "remove legacy group entries",
+        "level": 1,
+        "apply": true
+      }
+    },
+    {
+      "rule": {
+        "name": "6.2.6",
+        "description": "find 0 uid non root account",
+        "level": 2,
+        "apply": true
+      }
+    },
+    {
+      "rule": {
+        "name": "6.2.7",
+        "description": "sanitize root path",
+        "level": 2,
+        "apply": true
+      }
+    },
+    {
+      "rule": {
+        "name": "6.2.8",
+        "description": "check user dir perm",
+        "level": 2,
+        "apply": true
+      }
+    },
+    {
+      "rule": {
+        "name": "6.2.9",
+        "description": "users homedir ownership",
+        "level": 2,
+        "apply": true
+      }
+    }
+  ]
+}
