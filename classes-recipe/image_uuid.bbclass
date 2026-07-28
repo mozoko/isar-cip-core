@@ -45,9 +45,9 @@ do_generate_image_uuid[vardeps] += "IMAGE_UUID"
 do_generate_image_uuid[dirs] = "${DEPLOY_DIR_IMAGE}"
 do_generate_image_uuid[network] = "${TASK_USE_SUDO}"
 do_generate_image_uuid() {
-    sudo sed -i '/^IMAGE_UUID=.*/d' '${IMAGE_ROOTFS}/etc/os-release'
+    run_privileged sed -i '/^IMAGE_UUID=.*/d' '${IMAGE_ROOTFS}/etc/os-release'
     echo "IMAGE_UUID=\"${IMAGE_UUID}\"" | \
-        sudo tee -a '${IMAGE_ROOTFS}/etc/os-release'
+        run_privileged tee -a '${IMAGE_ROOTFS}/etc/os-release'
 
     echo "TARGET_IMAGE_UUID=\"${IMAGE_UUID}\"" \
         > "${DEPLOY_DIR_IMAGE}/${IMAGE_FULLNAME}.uuid.env"

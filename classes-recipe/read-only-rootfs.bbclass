@@ -44,15 +44,15 @@ IMMUTABLE_DATA_DIR ??= "/usr/share/immutable-data"
 
 copy_dpkg_state() {
     IMMUTABLE_VAR_LIB="${ROOTFSDIR}${IMMUTABLE_DATA_DIR}/var/lib"
-    sudo mkdir -p "$IMMUTABLE_VAR_LIB"
-    sudo cp -a ${ROOTFSDIR}/var/lib/dpkg "$IMMUTABLE_VAR_LIB/"
+    run_privileged mkdir -p "$IMMUTABLE_VAR_LIB"
+    run_privileged cp -a ${ROOTFSDIR}/var/lib/dpkg "$IMMUTABLE_VAR_LIB/"
 }
 
 ROOTFS_POSTPROCESS_COMMAND:append = " copy_home_to_immutable_data"
 ROOTFS_POSTPROCESS_COMMAND:remove:separate-home-part = " copy_home_to_immutable_data"
 copy_home_to_immutable_data() {
     IMMUTABLE_HOME_DIR="${ROOTFSDIR}${IMMUTABLE_DATA_DIR}"
-    sudo -s <<EOSUDO
+    run_privileged_heredoc <<EOSUDO
         set -e
         mkdir -p "$IMMUTABLE_HOME_DIR"
         rm -rf "$IMMUTABLE_HOME_DIR/home"
@@ -70,7 +70,7 @@ EROFS_EXCLUDE_DIRS = "${RO_ROOTFS_EXCLUDE_DIRS}"
 SQUASHFS_EXCLUDE_DIRS = "${RO_ROOTFS_EXCLUDE_DIRS}"
 
 image_configure_fstab() {
-    sudo tee '${IMAGE_ROOTFS}/etc/fstab' << EOF
+    run_privileged tee '${IMAGE_ROOTFS}/etc/fstab' << EOF
 # Begin /etc/fstab
 /dev/root	/		auto		defaults,ro			0	0
 LABEL=var	/var		auto		defaults			0	0
