@@ -14,7 +14,7 @@ OPENSBI_BIN = "fw_payload.bin"
 OPENSBI_EXTRA_BUILDARGS = "FW_PAYLOAD_PATH=/usr/lib/u-boot/qemu-riscv64/u-boot.bin"
 
 do_deploy_firmware() {
-    dpkg --fsys-tarfile "${WORKDIR}/${PN}_${PV}_${DISTRO_ARCH}.deb" | \
+    dpkg --fsys-tarfile "${DEPLOYDIR}/${PN}_${PV}_${DISTRO_ARCH}.deb" | \
         tar xOf - "./usr/lib/opensbi/${MACHINE}/${OPENSBI_BIN}" \
         > "${DEPLOYDIR_FIRMWARE}/${OPENSBI_BIN}"
 }
