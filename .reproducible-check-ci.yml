@@ -37,8 +37,7 @@
     # Deploy .wic, .swu and wic partitions for build1
     - deploy_rb_artifacts build1
     # clean
-    - sudo rm -rf build/tmp
-    - sudo rm -rf build/sstate-cache
+    - kas purge --isar-rootless ${base_yaml}
     # Build 2nd time
     - !reference [.build_base, script]
     # Deploy .wic, .swu and wic partitions for build2
