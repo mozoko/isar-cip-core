@@ -17,7 +17,7 @@ config KAS_INCLUDE_MAIN
 
 config KAS_BUILD_SYSTEM
 	string
-	default "isar"
+	default "isar-privileged"
 
 config ARCH_AMD64
 	bool

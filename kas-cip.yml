@@ -15,7 +15,7 @@ header:
 distro: cip-core-trixie
 target: cip-core-image
 
-build_system: isar
+build_system: isar-privileged
 
 repos:
   cip-core:

@@ -34,7 +34,7 @@ stages:
   - cve-check
 
 default:
-  image: ghcr.io/siemens/kas/kas-isar:5.2
+  image: ghcr.io/siemens/kas/kas-isar:5.4
   before_script:
     - export http_proxy=$HTTP_PROXY
     - export https_proxy=$HTTPS_PROXY
