@@ -26,7 +26,7 @@ python() {
 }
 
 do_deploy_firmware() {
-    dpkg --fsys-tarfile "${WORKDIR}/u-boot-${MACHINE}_${PV}_${DISTRO_ARCH}.deb" | \
+    dpkg --fsys-tarfile "${DEPLOYDIR}/u-boot-${MACHINE}_${PV}_${DISTRO_ARCH}.deb" | \
         tar xOf - "./usr/lib/u-boot/${MACHINE}/${U_BOOT_BIN}" \
         > "${DEPLOYDIR_FIRMWARE}/firmware.bin"
 }
