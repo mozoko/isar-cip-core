@@ -10,10 +10,9 @@ from scratch.
 
 ## Building Target Images
 
-Install docker or podman and make sure you have required permissions to start
-privileged containers. For docker, you need to be part of respective docker
-group (`sudo usermod -aG docker <USER>`). Privileged podman requires sudo
-rights for the caller (`<USER> ALL=(root) SETENV: /usr/bin/podman` in sudoers).
+Install docker or podman. For true unprivileged builds, podman is recommended.
+See [kas documentation](https://kas.readthedocs.io/en/latest/userguide/kas-container.html)
+for more details.
 
 Open up the image configuration menu and select the desired target and its
 options:
