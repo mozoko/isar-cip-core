@@ -1,1 +1,0 @@
-linux-cip_6.12.95-cip27.bb
