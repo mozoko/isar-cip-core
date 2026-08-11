@@ -45,6 +45,8 @@ if [ -z "${DISTRO_RELEASE}" ]; then
 		DISTRO_RELEASE="bookworm"
 	elif grep -s -q "DEBIAN_TRIXIE: true" .config.yaml; then
 		DISTRO_RELEASE="trixie"
+	elif grep -s -q "DEBIAN_FORKY: true" .config.yaml; then
+		DISTRO_RELEASE="forky"
 	elif grep -s -q "DEBIAN_SID: true" .config.yaml; then
 		DISTRO_RELEASE="sid"
 	else
