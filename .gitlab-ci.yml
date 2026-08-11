@@ -355,7 +355,7 @@ build:qemu-amd64-secure-boot-buster:
   rules:
     - if: $CI_COMMIT_TAG
       when: never
-    - if: '$CI_PIPELINE_SOURCE == "schedule" && $CI_RUN_UNSTABLE_SID'
+    - if: '$CI_PIPELINE_SOURCE == "schedule" && $CI_RUN_UNSTABLE'
     - if: $CI_COMMIT_BRANCH != "master"
       when: never
   allow_failure: true
@@ -730,7 +730,7 @@ test:qemu-arm-swupdate-apply-same-image-swu:
   rules:
     - if: $CI_COMMIT_TAG
       when: never
-    - if: '$CI_PIPELINE_SOURCE == "schedule" && $CI_RUN_UNSTABLE_SID'
+    - if: '$CI_PIPELINE_SOURCE == "schedule" && $CI_RUN_UNSTABLE'
     - if: $CI_COMMIT_BRANCH != "master"
       when: never
   allow_failure: true
