@@ -238,6 +238,9 @@ config DEBIAN_BOOKWORM
 config DEBIAN_TRIXIE
 	bool "trixie (13)"
 
+config DEBIAN_FORKY
+	bool "forky (14)"
+
 config DEBIAN_SID
 	bool "Sid (Unstable)"
 
@@ -249,6 +252,7 @@ config KAS_INCLUDE_DEBIAN
 	default "kas/opt/bullseye.yml" if DEBIAN_BULLSEYE
 	default "kas/opt/bookworm.yml" if DEBIAN_BOOKWORM
 	default "kas/opt/trixie.yml" if DEBIAN_TRIXIE
+	default "kas/opt/forky.yml" if DEBIAN_FORKY
 	default "kas/opt/sid.yml" if DEBIAN_SID
 
 comment "Image features"
