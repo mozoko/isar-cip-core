@@ -5,6 +5,8 @@
 #
 # Authors:
 #  Venkata Pyla <venkata.pyla@toshiba-tsip.com>
+#  Adithya Balakumar <adithya.balakumar@toshiba-tsip.com>
+#  Shivanand Kunijadar <shivanand.kunijadar@toshiba-tsip.com>
 #
 # SPDX-License-Identifier: MIT
 #
@@ -129,6 +131,39 @@ build:x86-uefi-repro-build:
   variables:
     target: x86-uefi
 
+# repro build for debian forky
+build:qemu-amd64-repro-build-forky:
+  extends:
+    - .repro-build
+  variables:
+    target: qemu-amd64
+    release: forky
+  allow_failure: true
+
+build:qemu-arm64-repro-build-forky:
+  extends:
+    - .repro-build
+  variables:
+    target: qemu-arm64
+    release: forky
+  allow_failure: true
+
+build:qemu-arm-repro-build-forky:
+  extends:
+    - .repro-build
+  variables:
+    target: qemu-arm
+    release: forky
+  allow_failure: true
+
+build:x86-uefi-repro-build-forky:
+  extends:
+    - .repro-build
+  variables:
+    target: x86-uefi
+    release: forky
+  allow_failure: true
+
 # repro build test
 test:qemu-amd64-repro-test:
   extends:
@@ -165,3 +200,40 @@ test:x86-uefi-repro-test:
   variables:
     target: x86-uefi
   needs: ["build:x86-uefi-repro-build"]
+
+# repro build test for debian forky
+test:qemu-amd64-repro-test-forky:
+  extends:
+    - .repro-test
+  variables:
+    target: qemu-amd64
+    release: forky
+  allow_failure: true
+  needs: ["build:qemu-amd64-repro-build-forky"]
+
+test:qemu-arm64-repro-test-forky:
+  extends:
+    - .repro-test
+  variables:
+    target: qemu-arm64
+    release: forky
+  allow_failure: true
+  needs: ["build:qemu-arm64-repro-build-forky"]
+
+test:qemu-arm-repro-test-forky:
+  extends:
+    - .repro-test
+  variables:
+    target: qemu-arm
+    release: forky
+  allow_failure: true
+  needs: ["build:qemu-arm-repro-build-forky"]
+
+test:x86-uefi-repro-test-forky:
+  extends:
+    - .repro-test
+  variables:
+    target: x86-uefi
+    release: forky
+  allow_failure: true
+  needs: ["build:x86-uefi-repro-build-forky"]

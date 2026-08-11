@@ -8,6 +8,7 @@
 #  Jan Kiszka <jan.kiszka@siemens.com>
 #  Quirin Gylstorff <quirin.gylstorff@siemens.com>
 #  Nobuhiro Iwamatsu <nobuhiro1.iwamatsu@toshiba.co.jp>
+#  Shivanand Kunijadar <shivanand.kunijadar@toshiba-tsip.com>
 #
 # SPDX-License-Identifier: MIT
 #
@@ -63,6 +64,7 @@ default:
     - if [ "${release}" = "bullseye" ]; then base_yaml="${base_yaml}:kas/opt/bullseye.yml"; fi
     - if [ "${release}" = "bookworm" ]; then base_yaml="${base_yaml}:kas/opt/bookworm.yml"; fi
     - if [ "${release}" = "trixie" ]; then base_yaml="${base_yaml}:kas/opt/trixie.yml"; fi
+    - if [ "${release}" = "forky" ]; then base_yaml="${base_yaml}:kas/opt/forky.yml"; fi
     - if [ "${release}" = "sid" ]; then base_yaml="${base_yaml}:kas/opt/sid.yml"; fi
     - if [ "${encrypt}" = "enable" ]; then base_yaml="${base_yaml}:kas/opt/encrypt-data.yml"; fi
     - if [ "${factory_reset}" = "enable" ]; then base_yaml="${base_yaml}:kas/opt/factory-reset.yml"; fi
@@ -395,6 +397,57 @@ build:qemu-arm-base-sid:
     security_test: enable
     use_rt: disable
     release: sid
+    build_updates: enable
+    separate_home_partition: enable
+    deploy: enable
+
+# forky image builds
+.build_base_forky:
+  extends:
+    - .build_base
+  rules:
+    - if: $CI_COMMIT_TAG
+      when: never
+    - if: '$CI_PIPELINE_SOURCE == "schedule" && $CI_RUN_UNSTABLE'
+    - if: $CI_COMMIT_BRANCH != "master"
+      when: never
+  allow_failure: true
+
+build:qemu-amd64-base-forky:
+  extends:
+    - .build_base_forky
+  variables:
+    target: qemu-amd64
+    use_rt: disable
+    release: forky
+    extension: security
+    security_test: enable
+    build_updates: enable
+    separate_home_partition: enable
+    deploy: enable
+
+build:qemu-arm64-base-forky:
+  extends:
+    - .build_base_forky
+  variables:
+    target: qemu-arm64
+    use_rt: disable
+    release: forky
+    extension: security
+    security_test: enable
+    build_updates: enable
+    separate_home_partition: enable
+    deploy: enable
+
+build:qemu-arm-base-forky:
+  extends:
+    - .build_base_forky
+  variables:
+    target: qemu-arm
+    extension: security
+    security_test: enable
+    use_rt: disable
+    release: forky
     build_updates: enable
     separate_home_partition: enable
     deploy: enable
@@ -761,6 +814,101 @@ test:qemu-arm-IEC-sid:
   variables:
     target: qemu-arm
     release: sid
+    test_function: IEC
+    iec_test_timeout: 40
+
+# Tests for forky images
+.test-cip-core-forky:
+  extends:
+    - .test-cip-core
+  rules:
+    - if: $CI_COMMIT_TAG
+      when: never
+    - if: '$CI_PIPELINE_SOURCE == "schedule" && $CI_RUN_UNSTABLE'
+    - if: $CI_COMMIT_BRANCH != "master"
+      when: never
+  allow_failure: true
+
+test:qemu-amd64-swupdate-forky:
+  extends:
+    - .test-cip-core-forky
+  needs: ["build:qemu-amd64-base-forky"]
+  variables:
+    target: qemu-amd64
+    release: forky
+    test_function: swupdate
+
+test:qemu-arm64-swupdate-forky:
+  extends:
+    - .test-cip-core-forky
+  needs: ["build:qemu-arm64-base-forky"]
+  variables:
+    target: qemu-arm64
+    release: forky
+    test_function: swupdate
+
+test:qemu-arm-swupdate-forky:
+  extends:
+    - .test-cip-core-forky
+  needs: ["build:qemu-arm-base-forky"]
+  variables:
+    target: qemu-arm
+    release: forky
+    test_function: swupdate
+
+test:qemu-amd64-secure-boot-forky:
+  extends:
+    - .test-cip-core-forky
+  needs: ["build:qemu-amd64-base-forky"]
+  variables:
+    target: qemu-amd64
+    release: forky
+    test_function: secure-boot
+
+test:qemu-arm64-secure-boot-forky:
+  extends:
+    - .test-cip-core-forky
+  needs: ["build:qemu-arm64-base-forky"]
+  variables:
+    target: qemu-arm64
+    release: forky
+    test_function: secure-boot
+
+test:qemu-arm-secure-boot-forky:
+  extends:
+    - .test-cip-core-forky
+  needs: ["build:qemu-arm-base-forky"]
+  variables:
+    target: qemu-arm
+    release: forky
+    test_function: secure-boot
+
+test:qemu-amd64-IEC-forky:
+  extends:
+   - .test-cip-core-forky
+  variables:
+    target: qemu-amd64
+    release: forky
+    test_function: IEC
+    iec_test_timeout: 40
+
+test:qemu-arm64-IEC-forky:
+  extends:
+   - .test-cip-core-forky
+  needs: ["build:qemu-arm64-base-forky"]
+  variables:
+    target: qemu-arm64
+    release: forky
+    test_function: IEC
+    iec_test_timeout: 40
+
+test:qemu-arm-IEC-forky:
+  extends:
+   - .test-cip-core-forky
+  needs: ["build:qemu-arm-base-forky"]
+  variables:
+    target: qemu-arm
+    release: forky
     test_function: IEC
     iec_test_timeout: 40
 
