@@ -21,7 +21,7 @@
     extension: security
   stage: build
   tags:
-    - large
+    - large-rootless
   rules:
     - if: $CI_PIPELINE_SOURCE == "schedule" && $REPRODUCIBLE_BUILDS
   script:
