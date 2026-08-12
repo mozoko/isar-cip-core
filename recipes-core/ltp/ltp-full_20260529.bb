@@ -11,6 +11,4 @@
 
 require recipes-core/ltp/ltp.inc
 
-SRC_URI += "file://0001-listmount04.c-Update-struct-mnt_id_req-support-for-k.patch"
-
-SRC_URI[sha256sum] = "048fa4d69ddbe8a94aa15da9bdc85713ab07a0abbc3de2b8bdd9757644aef1e4"
+SRC_URI[sha256sum] = "685d83c6e370ac09201fb79593412f868fe031ee2890e204b5727fedcf51fb47"
