@@ -1,7 +1,7 @@
 #
 # CIP Core, generic profile
 #
-# Copyright (c) Siemens AG, 2019-2025
+# Copyright (c) Siemens AG, 2019-2026
 # Copyright (c) Toshiba Corporation, 2020
 #
 # Authors:
@@ -53,7 +53,7 @@ default:
       when: never
     - if: $CI_COMMIT_BRANCH != "master"
   tags:
-    - large
+    - large-rootless
   variables:
     base_yaml: "kas-cip.yml:kas/board/${target}.yml"
   script:
@@ -917,7 +917,7 @@ cve-checks:
   needs: []
   image: registry.gitlab.com/cip-project/cip-core/debian-cve-checker:build-latest
   tags:
-    - large
+    - large-rootless
   script:
     - scripts/run-cve-checks.sh
   rules:
@@ -936,7 +936,7 @@ lavacli-container:
   stage: build
   image: quay.io/buildah/stable:v1.41.4
   tags:
-    - large
+    - large-rootless
   before_script:
     - buildah login -u $CI_REGISTRY_USER --password $CI_REGISTRY_PASSWORD $CI_REGISTRY
   script:
