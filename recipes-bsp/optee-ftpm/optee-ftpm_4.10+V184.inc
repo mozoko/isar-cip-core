@@ -18,6 +18,8 @@ SRC_URI += " \
     file://0001-Update-to-TPM-2.0-Reference-Implementation-v184.patch \
     file://0002-Disable-command-TPM2_CertifyX509.patch \
     https://github.com/TrustedComputingGroup/TPM/archive/${SRCREV_tpm}.tar.gz;name=tpm;downloadfilename=tpm-${SRCREV_tpm}.tar.gz \
+    file://0001-Address-improper-object-slot-reuse.patch;patchdir=${WORKDIR}/${MS_TPM_20_REF_DIR} \
+    file://0002-Address-RSA-OAEP-timing-side-channel-vulnerability.patch;patchdir=${WORKDIR}/${MS_TPM_20_REF_DIR} \
     "
 SRCREV = "a09269b15de635e1816fe832e26adfbfb44c5455"
 SRCREV_tpm = "bc29a21d44b01396223c152a4834e52318591770"
