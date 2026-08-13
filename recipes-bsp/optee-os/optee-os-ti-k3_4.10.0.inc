@@ -13,7 +13,7 @@ SRC_URI += " \
     https://github.com/OP-TEE/optee_os/archive/${PV}.tar.gz;downloadfilename=optee-os-${PV}.tar.gz \
     "
 
-SRC_URI[sha256sum] = "5222cd553f5edb69ae4ec7cb99b2bfec2c47a47c0be1865b49744701918e8b4d"
+SRC_URI[sha256sum] = "18633691cb075ff2249422251f1cd77c30439a95b564b46682dea1fb6580a5af"
 
 S = "${WORKDIR}/optee_os-${PV}"
 
