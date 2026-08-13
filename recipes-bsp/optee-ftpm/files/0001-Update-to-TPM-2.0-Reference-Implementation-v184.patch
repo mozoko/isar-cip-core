@@ -1,0 +1,3885 @@
+From fa667cf9e15d907030d11d8421ebbb44e18e605f Mon Sep 17 00:00:00 2001
+From: Jan Kiszka <jan.kiszka@siemens.com>
+Date: Mon, 4 May 2026 11:50:32 +0200
+Subject: [PATCH 1/2] Update to TPM 2.0 Reference Implementation v184
+
+The TPM 2.0 Reference Implementation has apparently moved to a new home at
+https://github.com/TrustedComputingGroup/TPM
+This commit contains changes to enable building optee_ftpm with the
+TPM 2.0 Reference Implementation v184. This is the most recent version
+tag at the time of writing.
+
+Co-authored-by: Sven Bauer <svenbauer@siemens.com>
+Signed-off-by: Sven Bauer <svenbauer@siemens.com>
+---
+ README.md                                     |   8 +-
+ include/TEE/{TpmToTEEMath.h => BnToTEEMath.h} |  29 +-
+ include/fTPM.h                                |  11 +-
+ include/user_ta_header_defines.h              |   5 +-
+ platform/AdminPPI.c                           |   5 +-
+ platform/Cancel.c                             |   9 +-
+ platform/Clock.c                              |  38 +-
+ platform/EPS.c                                |  97 ----
+ platform/Entropy.c                            |   9 +-
+ platform/ExtraData.c                          |  69 +++
+ platform/Failure.c                            | 152 ++++++
+ platform/Init.c                               |  53 ++
+ platform/LocalityPlat.c                       |   9 +-
+ platform/NVMem.c                              |  78 ++-
+ platform/NvAdmin.c                            |   9 +-
+ platform/PPPlat.c                             |   9 +-
+ platform/PlatformACT.c                        |   7 +-
+ platform/PlatformData.c                       |   6 +-
+ platform/PlatformPcr.c                        | 194 +++++++
+ platform/PowerPlat.c                          |  13 +-
+ platform/RunCommand.c                         |  21 +-
+ platform/SelfTest.c                           |  18 +
+ platform/Unique.c                             | 102 ----
+ platform/VendorInfo.c                         | 220 ++++++++
+ platform/include/Admin.h                      |   7 +-
+ platform/include/Platform.h                   |  14 +-
+ platform/include/PlatformData.h               |   8 +-
+ platform/include/Platform_fp.h                | 492 ------------------
+ .../TpmConfiguration/TpmBuildSwitches.h       | 275 ++++++++++
+ .../TpmConfiguration/TpmProfile_CommandList.h | 213 ++++++++
+ .../TpmConfiguration/TpmProfile_Common.h      | 278 ++++++++++
+ reference/include/VendorString.h              |  93 ----
+ sub.mk                                        | 452 ++++++++--------
+ tee/{TpmToTEEMath.c => BnToTEEMath.c}         |  96 +++-
+ tee/{TpmToTEESupport.c => BnToTEESupport.c}   |   4 +-
+ 35 files changed, 1969 insertions(+), 1134 deletions(-)
+ rename include/TEE/{TpmToTEEMath.h => BnToTEEMath.h} (79%)
+ delete mode 100644 platform/EPS.c
+ create mode 100644 platform/ExtraData.c
+ create mode 100644 platform/Failure.c
+ create mode 100644 platform/Init.c
+ create mode 100644 platform/PlatformPcr.c
+ create mode 100644 platform/SelfTest.c
+ delete mode 100644 platform/Unique.c
+ create mode 100644 platform/VendorInfo.c
+ delete mode 100644 platform/include/Platform_fp.h
+ create mode 100644 platform/include/TpmConfiguration/TpmBuildSwitches.h
+ create mode 100644 platform/include/TpmConfiguration/TpmProfile_CommandList.h
+ create mode 100644 platform/include/TpmConfiguration/TpmProfile_Common.h
+ delete mode 100644 reference/include/VendorString.h
+ rename tee/{TpmToTEEMath.c => BnToTEEMath.c} (86%)
+ rename tee/{TpmToTEESupport.c => BnToTEESupport.c} (67%)
+
+diff --git a/README.md b/README.md
+index 43d1036..2b8d09b 100644
+--- a/README.md
++++ b/README.md
+@@ -20,10 +20,10 @@ Applications](https://optee.readthedocs.io/en/latest/building/trusted_applicatio
+ section in the [OP-TEE
+ documentation](https://optee.readthedocs.io/en/latest/index.html) with the
+ addition of `CFG_MS_TPM_20_REF` which must hold the path to a checked out
+-copy of the [MS TPM 2.0 Reference
+-Implementation](https://github.com/microsoft/ms-tpm-20-ref).
+-You need to checkout commit (98b60a44aba79b15fcce1c0d1e46cf5918400f6a) of [MS TPM 2.0 Reference
+-Implementation](https://github.com/microsoft/ms-tpm-20-ref)
++copy of the [The Official TPM 2.0 Reference
++Implementation](https://github.com/TrustedComputingGroup/TPM).
++For the time being and until The Official TPM 2.0 Reference Implementation accepts a corresponding pull request
++the following fixed version is required: https://github.com/svenbauer-work/TPM/tree/a9665960ddfb92b8a140cd8d37d29342ddb05b3b
+ 
+ ## Measured Boot support
+ The fTPM Trusted Application includes support for Measured Boot. This
+diff --git a/include/TEE/TpmToTEEMath.h b/include/TEE/BnToTEEMath.h
+similarity index 79%
+rename from include/TEE/TpmToTEEMath.h
+rename to include/TEE/BnToTEEMath.h
+index b7fcf58..49dc696 100644
+--- a/include/TEE/TpmToTEEMath.h
++++ b/include/TEE/BnToTEEMath.h
+@@ -51,22 +51,25 @@
+  * are defined in TpmTypes.h
+  */
+ 
+-#ifndef MATH_LIB_DEFINED
+-#define MATH_LIB_DEFINED
++#ifndef BN_MATH_LIB_DEFINED
++#define BN_MATH_LIB_DEFINED
+ 
+-#define MATH_LIB_TEE
++#define BN_MATH_LIB_TEE
+ 
+-typedef ECC_CURVE_DATA bnCurve_t;
++/*#define CRYPT_INT_BUF(buftypename, bits)    BN_STRUCT_DEF(buftypename, bits)
++#define CRYPT_POINT_BUF(buftypename, bits)  BN_POINT_BUF(buftypename, bits)
++#define CRYPT_CURVE_BUF(buftypename, bits)  TPMBN_ECC_CURVE_CONSTANTS*/
+ 
+-typedef bnCurve_t* bigCurve;
++typedef struct crypto_impl_description
++{
++} _CRYPTO_IMPL_DESCRIPTION;
+ 
+-#define SYMMETRIC_ALIGNMENT RADIX_BYTES
++typedef const TPMBN_ECC_CURVE_CONSTANTS*    bigCurveData;
+ 
+-#define AccessCurveData(E) (E)
++TPM_INLINE const TPMBN_ECC_CURVE_CONSTANTS* AccessCurveConstants(
++    const bigCurveData* E)
++{
++    return *E;
++}
+ 
+-#define CURVE_INITIALIZED(name, initializer) \
+-	bnCurve_t* name = (ECC_CURVE_DATA*)GetCurveData(initializer)
+-
+-#define CURVE_FREE(E)
+-
+-#endif /*MATH_LIB_DEFINED*/
++#endif /*BN_MATH_LIB_DEFINED*/
+diff --git a/include/fTPM.h b/include/fTPM.h
+index ad74f5a..52fd33f 100644
+--- a/include/fTPM.h
++++ b/include/fTPM.h
+@@ -1,6 +1,7 @@
+ /* SPDX-License-Identifier: BSD-2-Clause */
+ /*
+  * Copyright (c) 2024, Linaro Limited
++ * Copyright (c) 2026, Siemens AG
+  */
+ 
+ /* Microsoft Reference Implementation for TPM 2.0
+@@ -43,15 +44,9 @@
+ #ifndef FTPM_H
+ #define FTPM_H
+ 
+-#include <TpmProfile.h>
++#include <TpmConfiguration/TpmProfile.h>
+ #include <ftpm_ta.h>
+ 
+-//
+-// These must match values from reference/TPM/include/TpmProfile.h
+-//
+-#define  MAX_COMMAND_SIZE       4096
+-#define  MAX_RESPONSE_SIZE      4096
+-
+ //
+ // Macro for intentionally unreferenced parameters
+ //
+@@ -85,11 +80,9 @@ extern void ExecuteCommand(
+ //
+ // External functions supporting TPM initialization
+ //
+-extern int  _plat__NVEnable(void *platParameter);
+ extern int  TPM_Manufacture(bool firstTime);
+ extern bool _plat__NvNeedsManufacture(void);
+ extern void _TPM_Init(void);
+-extern void _plat__NVDisable(void);
+ extern void _admin__SaveChipFlags(void);
+ 
+ //
+diff --git a/include/user_ta_header_defines.h b/include/user_ta_header_defines.h
+index 3f5586e..2c26af9 100644
+--- a/include/user_ta_header_defines.h
++++ b/include/user_ta_header_defines.h
+@@ -1,6 +1,7 @@
+ /* SPDX-License-Identifier: BSD-2-Clause */
+ /*
+  * Copyright (c) 2024, Linaro Limited
++ * Copyright (c) 2026, Siemens AG
+  */
+ 
+ /* Microsoft Reference Implementation for TPM 2.0
+@@ -55,8 +56,8 @@
+ 				 TA_FLAG_INSTANCE_KEEP_ALIVE | \
+ 				 TA_FLAG_INSTANCE_KEEP_CRASHED | \
+ 				 TA_FLAG_DEVICE_ENUM_TEE_STORAGE_PRIVATE)
+-#define TA_STACK_SIZE           (64 * 1024)
+-#define TA_DATA_SIZE            (32 * 1024)
++#define TA_STACK_SIZE           (128 * 1024)
++#define TA_DATA_SIZE            (64 * 1024)
+ 
+ #define TA_VERSION		"0.1"
+ #define TA_DESCRIPTION		"fTPM TA"
+diff --git a/platform/AdminPPI.c b/platform/AdminPPI.c
+index 5dd0d98..3d09a9b 100644
+--- a/platform/AdminPPI.c
++++ b/platform/AdminPPI.c
+@@ -1,6 +1,7 @@
+ /* SPDX-License-Identifier: BSD-2-Clause */
+ /*
+  * Copyright (c) 2024, Linaro Limited
++ * Copyright (c) 2026, Siemens AG
+  */
+ /* Microsoft Reference Implementation for TPM 2.0
+  *
+@@ -240,7 +241,7 @@ _admin__PPIRequest(
+ {
+     TPM2_EmulatePPI_cmd_t cmd;
+     TPM2_EmulatePPI_res_t rsp;
+-    TPM2_EmulatePPI_res_t *rspPtr = &rsp;
++    UINT8 *rspPtr = (void *)&rsp;
+     UINT32 rspLen = sizeof(TPM2_EmulatePPI_res_t);
+     UINT8 *CmdBuffer;
+ 
+@@ -272,7 +273,7 @@ _admin__PPIRequest(
+     if (!_admin__PPICommand(sizeof(TPM2_EmulatePPI_cmd_t),
+                             (UINT8 *)&cmd,
+                             &rspLen,
+-                            (UINT8**)&rspPtr)) {
++                            &rspPtr)) {
+         return 0;
+     }
+ 
+diff --git a/platform/Cancel.c b/platform/Cancel.c
+index 304a070..f6f2b82 100644
+--- a/platform/Cancel.c
++++ b/platform/Cancel.c
+@@ -1,3 +1,7 @@
++/* SPDX-License-Identifier: BSD-2-Clause */
++/*
++ * Copyright (c) 2026, Siemens AG
++ */
+ /* Microsoft Reference Implementation for TPM 2.0
+  *
+  *  The copyright in this software is being made available under the BSD License,
+@@ -38,7 +42,8 @@
+ //
+ //** Includes, Typedefs, Structures, and Defines
+ #include "PlatformData.h"
+-#include "Platform_fp.h"
++#include "platform_interface/tpm_to_platform_interface.h"
++#include "prototypes/platform_public_interface.h"
+ 
+ //** Functions
+ 
+@@ -77,4 +82,4 @@ _plat__ClearCancel(
+ {
+     s_isCanceled = FALSE;
+     return;
+-}
+\ No newline at end of file
++}
+diff --git a/platform/Clock.c b/platform/Clock.c
+index 5bfd5b7..3fe1b59 100644
+--- a/platform/Clock.c
++++ b/platform/Clock.c
+@@ -1,3 +1,7 @@
++/* SPDX-License-Identifier: BSD-2-Clause */
++/*
++ * Copyright (c) 2026, Siemens AG
++ */
+ /* Microsoft Reference Implementation for TPM 2.0
+  *
+  *  The copyright in this software is being made available under the BSD License,
+@@ -42,8 +46,9 @@
+ 
+ //** Includes and Data Definitions
+ #include "PlatformData.h"
+-#include "Platform_fp.h"
+-#include "TpmFail_fp.h"
++#include "platform_interface/tpm_to_platform_interface.h"
++#include "prototypes/platform_public_interface.h"
++#include "tpm_public/prototypes/TpmFail_fp.h"
+ #include <assert.h>
+ #include <tee_internal_api.h>
+ 
+@@ -259,36 +264,31 @@ _plat__TimerWasStopped(
+ 
+ //***_plat__ClockAdjustRate()
+ // Adjust the clock rate
+-LIB_EXPORT void
+-_plat__ClockAdjustRate(
+-    int              adjust         // IN: the adjust number.  It could be positive
+-                                    //     or negative
+-    )
++LIB_EXPORT void _plat__ClockRateAdjust(_plat__ClockAdjustStep adjust)
+ {
+     // We expect the caller should only use a fixed set of constant values to
+     // adjust the rate
+     switch(adjust)
+     {
+-        case CLOCK_ADJUST_COARSE:
++        // slower increases the divisor
++        case PLAT_TPM_CLOCK_ADJUST_COARSE_SLOWER:
+             s_adjustRate += CLOCK_ADJUST_COARSE;
+             break;
+-        case -CLOCK_ADJUST_COARSE:
+-            s_adjustRate -= CLOCK_ADJUST_COARSE;
+-            break;
+-        case CLOCK_ADJUST_MEDIUM:
++        case PLAT_TPM_CLOCK_ADJUST_MEDIUM_SLOWER:
+             s_adjustRate += CLOCK_ADJUST_MEDIUM;
+             break;
+-        case -CLOCK_ADJUST_MEDIUM:
+-            s_adjustRate -= CLOCK_ADJUST_MEDIUM;
+-            break;
+-        case CLOCK_ADJUST_FINE:
++        case PLAT_TPM_CLOCK_ADJUST_FINE_SLOWER:
+             s_adjustRate += CLOCK_ADJUST_FINE;
+             break;
+-        case -CLOCK_ADJUST_FINE:
++        // faster decreases the divisor
++        case PLAT_TPM_CLOCK_ADJUST_FINE_FASTER:
+             s_adjustRate -= CLOCK_ADJUST_FINE;
+             break;
+-        default:
+-            // ignore any other values;
++        case PLAT_TPM_CLOCK_ADJUST_MEDIUM_FASTER:
++            s_adjustRate -= CLOCK_ADJUST_MEDIUM;
++            break;
++        case PLAT_TPM_CLOCK_ADJUST_COARSE_FASTER:
++            s_adjustRate -= CLOCK_ADJUST_COARSE;
+             break;
+     }
+ 
+diff --git a/platform/EPS.c b/platform/EPS.c
+deleted file mode 100644
+index d3bc269..0000000
+--- a/platform/EPS.c
++++ /dev/null
+@@ -1,97 +0,0 @@
+-/* SPDX-License-Identifier: BSD-2-Clause */
+-/*
+- * Copyright (c) 2024, Linaro Limited
+- */
+-/* Microsoft Reference Implementation for TPM 2.0
+- *
+- * The copyright in this software is being made available under the BSD
+- * License, included below. This software may be subject to other third
+- * party and contributor rights, including patent rights, and no such
+- * rights are granted under this license.
+- *
+- * Copyright (c) 2018-2023 Microsoft Corporation
+- *
+- * All rights reserved.
+- *
+- * BSD License
+- *
+- * Redistribution and use in source and binary forms, with or without
+- * modification, are permitted provided that the following conditions are
+- * met:
+- *
+- * Redistributions of source code must retain the above copyright notice,
+- * this list of conditions and the following disclaimer.
+- *
+- * Redistributions in binary form must reproduce the above copyright
+- * notice, this list of conditions and the following disclaimer in the
+- * documentation and/or other materials provided with the distribution.
+- *
+- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS
+- * IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
+- * TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
+- * PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+- * HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+- * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED
+- * TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
+- * PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
+- * LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
+- * NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+- * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+- */
+-
+-//
+-// Platform Endorsement Primary Seed
+-//
+-
+-#include "TpmError.h"
+-#include "Admin.h"
+-
+-#include <string.h>
+-#include <tee_internal_api.h>
+-#include <tee_internal_api_extensions.h>
+-
+-#define TEE_EPS_SIZE      (256/2)   // From TPM2B_RSA_TEST_PRIME in Hierarchy.c
+-
+-void
+-_plat__GetEPS(UINT16 Size, uint8_t *EndorsementSeed)
+-{
+-    TEE_Result Result = TEE_ERROR_ITEM_NOT_FOUND;
+-    uint8_t EPS[TEE_EPS_SIZE] = { 0 };
+-    size_t EPSLen;
+-
+-    IMSG("Size=%" PRIu16 "",Size);
+-    IMSG("EPS=%d",TEE_EPS_SIZE);
+-
+-    pAssert(Size <= (TEE_EPS_SIZE));
+-
+-    Result = TEE_GetPropertyAsBinaryBlock(TEE_PROPSET_CURRENT_TA,
+-                                          "com.microsoft.ta.endorsementSeed",
+-                                          EPS,
+-                                          &EPSLen);
+-
+-    if ((EPSLen < Size) || (Result != TEE_SUCCESS)) {
+-        // We failed to access the property. We can't continue without it
+-        // and we can't just fail to manufacture, so randomize EPS and
+-        // continue. If necessary, fTPM TA storage can be cleared, or the
+-        // TA updated, and we can trigger remanufacture and try again.
+-        _plat__GetEntropy(EndorsementSeed, TEE_EPS_SIZE);
+-        return;
+-    }
+-
+-    memcpy(EndorsementSeed, EPS, Size);
+-
+-#ifdef fTPMDebug
+-    {
+-        uint32_t x;
+-        uint8_t *seed = EndorsementSeed;
+-        DMSG("TEE_GetProperty 0x%x, seedLen 0x%x\n", Result, Size);
+-        for (x = 0; x < Size; x = x + 8) {
+-            DMSG(" seed(%2.2d): %2.2x,%2.2x,%2.2x,%2.2x,%2.2x,%2.2x,%2.2x,%2.2x\n", x,
+-                seed[x + 0], seed[x + 1], seed[x + 2], seed[x + 3],
+-                seed[x + 4], seed[x + 5], seed[x + 6], seed[x + 7]);
+-        }
+-    }
+-#endif
+-
+-    return;
+-}
+diff --git a/platform/Entropy.c b/platform/Entropy.c
+index 3ca2fed..ed2cd11 100644
+--- a/platform/Entropy.c
++++ b/platform/Entropy.c
+@@ -1,3 +1,7 @@
++/* SPDX-License-Identifier: BSD-2-Clause */
++/*
++ * Copyright (c) 2026, Siemens AG
++ */
+ /* Microsoft Reference Implementation for TPM 2.0
+  *
+  *  The copyright in this software is being made available under the BSD License,
+@@ -38,7 +42,8 @@
+ #include <stdlib.h>
+ #include <memory.h>
+ #include "PlatformData.h"
+-#include "Platform_fp.h"
++#include "platform_interface/tpm_to_platform_interface.h"
++#include "prototypes/platform_public_interface.h"
+ #include <time.h>
+ 
+ #include <tee_internal_api.h>
+@@ -125,4 +130,4 @@ _plat__GetEntropy(
+         }
+     }
+     return ret;
+-}
+\ No newline at end of file
++}
+diff --git a/platform/ExtraData.c b/platform/ExtraData.c
+new file mode 100644
+index 0000000..0beca1e
+--- /dev/null
++++ b/platform/ExtraData.c
+@@ -0,0 +1,69 @@
++/* SPDX-License-Identifier: BSD-2-Clause */
++/*
++ * Copyright (c) 2026, Siemens AG
++ */
++// Copied from the TCG reference implementation, see
++// https://github.com/TrustedComputingGroup/TPM/tree/main/TPMCmd/Platform/src/ExtraData.c, tag V184
++/*
++ * TCG Reference Implementation for TPM 2.0
++ * This code is informative.
++ *
++ * The copyright in this software is being made available under the BSD License,
++ * included below.
++ *
++ * Copyright 2010-2022 Microsoft Corporation
++ * Copyright 2022-2025 Trusted Computing Group and its contributors
++ *
++ * All rights reserved.
++ *
++ * BSD License
++ *
++ * Redistribution and use in source and binary forms, with or without
++ * modification, are permitted provided that the following conditions are met:
++ *
++ * Redistributions of source code must retain the above copyright notice, this
++ * list of conditions and the following disclaimer.
++ *
++ * Redistributions in binary form must reproduce the above copyright notice, this
++ * list of conditions and the following disclaimer in the documentation and/or
++ * other materials provided with the distribution.
++ *
++ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS ""AS IS""
++ * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
++ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
++ * DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
++ * FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
++ * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
++ * SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
++ * CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
++ * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
++ * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
++ */
++//** Description
++//
++// This file contains routines that are called by the core library to allow the
++// platform to use the Core storage structures for small amounts of related data.
++//
++// In this implementation, the buffers are all just set to 0xFF
++
++//** Includes and Data Definitions
++#include "Tpm.h"
++#include "prototypes/platform_public_interface.h"
++
++//** _plat__GetPlatformManufactureData
++
++// This function allows the platform to provide a small amount of data to be
++// stored as part of the TPM's PERSISTENT_DATA structure during manufacture.  Of
++// course the platform can store data separately as well, but this allows a
++// simple platform implementation to store a few bytes of data without
++// implementing a multi-layer storage system.  This function is called on
++// manufacture and CLEAR.  The buffer will contain the last value provided
++// to the Core library.
++LIB_EXPORT void _plat__GetPlatformManufactureData(uint8_t* pPlatformPersistentData,
++                                                  uint32_t bufferSize)
++{
++    if(bufferSize != 0)
++    {
++        memset((void*)pPlatformPersistentData, 0xFF, bufferSize);
++    }
++}
+diff --git a/platform/Failure.c b/platform/Failure.c
+new file mode 100644
+index 0000000..9c54e4b
+--- /dev/null
++++ b/platform/Failure.c
+@@ -0,0 +1,152 @@
++/* SPDX-License-Identifier: BSD-2-Clause */
++/*
++ * Copyright (c) 2026, Siemens AG
++ */
++// Copied from the TCG reference implementation, see
++// https://github.com/TrustedComputingGroup/TPM/tree/main/TPMCmd/Platform/src/Failure.c, tag V184
++/*
++ * TCG Reference Implementation for TPM 2.0
++ * This code is informative.
++ *
++ * The copyright in this software is being made available under the BSD License,
++ * included below.
++ *
++ * Copyright 2010-2022 Microsoft Corporation
++ * Copyright 2022-2025 Trusted Computing Group and its contributors
++ *
++ * All rights reserved.
++ *
++ * BSD License
++ *
++ * Redistribution and use in source and binary forms, with or without
++ * modification, are permitted provided that the following conditions are met:
++ *
++ * Redistributions of source code must retain the above copyright notice, this
++ * list of conditions and the following disclaimer.
++ *
++ * Redistributions in binary form must reproduce the above copyright notice, this
++ * list of conditions and the following disclaimer in the documentation and/or
++ * other materials provided with the distribution.
++ *
++ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS ""AS IS""
++ * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
++ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
++ * DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
++ * FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
++ * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
++ * SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
++ * CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
++ * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
++ * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
++ */
++
++//** Includes and locals
++#include "Platform.h"
++#include <assert.h>
++#include <setjmp.h>
++#include <stdio.h>
++
++// Macro to suppress warning about intentionally unreferenced parameters.
++#ifndef UNREFERENCED_PARAMETER
++#define UNREFERENCED_PARAMETER(a) do { (void)(a); } while (0)
++#endif
++
++#if LONGJMP_SUPPORTED
++// in RunCommand.c
++extern jmp_buf s_FailureModeJumpBuffer;
++#endif
++
++#if ALLOW_FORCE_FAILURE_MODE
++static BOOL s_forceFailureMode;  // flag to force failure mode during test
++BOOL        _plat_internal_IsForceFailureMode()
++{
++    return s_forceFailureMode;
++}
++LIB_EXPORT void _plat__SetForceFailureMode()
++{
++    s_forceFailureMode = TRUE;
++}
++#endif
++
++#if FAIL_TRACE
++// The name of the function that triggered failure mode.
++static const char* s_failFunctionName;
++// The line in the file at which the error was signaled.
++static uint32_t s_failLine;
++#endif  // FAIL_TRACE
++
++// A numeric indicator of the location that triggered failure mode.
++static uint64_t s_failureLocation;
++// the reason for the failure.
++static uint32_t s_failCode;
++static BOOL     s_IsInFailureMode = FALSE;
++
++void            _plat_internal_resetFailureData(void)
++{
++#if ALLOW_FORCE_FAILURE_MODE
++    s_forceFailureMode = FALSE;
++#endif
++
++#if FAIL_TRACE
++    // The name of the function that triggered failure mode.
++    s_failFunctionName = NULL;
++    // The line in the file at which the error was signaled.
++    s_failLine = 0;
++#endif  // FAIL_TRACE
++
++    // A numeric indicator of the location that triggered failure mode.
++    s_failureLocation = 0;
++    // the reason for the failure.
++    s_failCode        = 0;
++    s_IsInFailureMode = FALSE;
++}
++
++// Indicates to the TPM Library that a failure has occurred.
++// This is REQURIED to return true after any call to _plat__Fail.
++// It MAY return true for any other reason the platform deems appropriate.
++LIB_EXPORT BOOL _plat__InFailureMode(void)
++{
++    return s_IsInFailureMode;
++}
++
++//***_plat__Fail()
++// This is the platform depended failure exit for the TPM.
++LIB_EXPORT NORETURN_IF_LONGJMP void _plat__Fail(
++#if FAIL_TRACE
++    const char* function,
++    int         line,
++#endif
++    uint64_t locationCode,
++    int      failureCode)
++{
++#if FAIL_TRACE
++    UNREFERENCED_PARAMETER(function);
++    UNREFERENCED_PARAMETER(line);
++#endif
++    UNREFERENCED_PARAMETER(locationCode);
++    UNREFERENCED_PARAMETER(failureCode);
++    TEE_Panic(TEE_ERROR_BAD_STATE);
++    while (true); /* Not reached */
++}
++
++LIB_EXPORT UINT32 _plat__GetFailureCode(void)
++{
++    return s_failCode;
++}
++
++LIB_EXPORT uint64_t _plat__GetFailureLocation(void)
++{
++    return s_failureLocation;
++}
++
++#if FAIL_TRACE
++LIB_EXPORT const char* _plat__GetFailureFunctionName(void)
++{
++    return s_failFunctionName;
++}
++
++LIB_EXPORT uint32_t _plat__GetFailureLine(void)
++{
++    return s_failLine;
++}
++#endif
+diff --git a/platform/Init.c b/platform/Init.c
+new file mode 100644
+index 0000000..5b33305
+--- /dev/null
++++ b/platform/Init.c
+@@ -0,0 +1,53 @@
++// Copied from the TCG reference implementation, see
++// https://github.com/TrustedComputingGroup/TPM/tree/main/TPMCmd/Platform/src/Init.c, tag V184
++/*
++ * TCG Reference Implementation for TPM 2.0
++ * This code is informative.
++ *
++ * The copyright in this software is being made available under the BSD License,
++ * included below.
++ *
++ * Copyright 2010-2022 Microsoft Corporation
++ * Copyright 2022-2025 Trusted Computing Group and its contributors
++ *
++ * All rights reserved.
++ *
++ * BSD License
++ *
++ * Redistribution and use in source and binary forms, with or without
++ * modification, are permitted provided that the following conditions are met:
++ *
++ * Redistributions of source code must retain the above copyright notice, this
++ * list of conditions and the following disclaimer.
++ *
++ * Redistributions in binary form must reproduce the above copyright notice, this
++ * list of conditions and the following disclaimer in the documentation and/or
++ * other materials provided with the distribution.
++ *
++ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS ""AS IS""
++ * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
++ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
++ * DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
++ * FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
++ * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
++ * SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
++ * CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
++ * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
++ * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
++ */
++
++ #include "Platform.h"
++
++// Notification at very start of TPM_Init();
++LIB_EXPORT void _plat__StartTpmInit(void)
++{
++    // call platform reset functions, that have no TPM dependencies
++    // needs the failure change
++    _plat_internal_resetFailureData();
++}
++
++LIB_EXPORT void _plat__EndOkTpmInit(void)
++{
++    // call platform reset functions that depend on previous TPM initialization
++    // (none in this implementation)
++}
+diff --git a/platform/LocalityPlat.c b/platform/LocalityPlat.c
+index 1d74c57..ba3b257 100644
+--- a/platform/LocalityPlat.c
++++ b/platform/LocalityPlat.c
+@@ -1,3 +1,7 @@
++/* SPDX-License-Identifier: BSD-2-Clause */
++/*
++ * Copyright (c) 2026, Siemens AG
++ */
+ /* Microsoft Reference Implementation for TPM 2.0
+  *
+  *  The copyright in this software is being made available under the BSD License,
+@@ -35,7 +39,8 @@
+ //** Includes
+ 
+ #include "PlatformData.h"
+-#include "Platform_fp.h"
++#include "platform_interface/tpm_to_platform_interface.h"
++#include "prototypes/platform_public_interface.h"
+ 
+ //** Functions
+ 
+@@ -62,4 +67,4 @@ _plat__LocalitySet(
+         locality = 0;
+     s_locality = locality;
+     return;
+-}
+\ No newline at end of file
++}
+diff --git a/platform/NVMem.c b/platform/NVMem.c
+index d5fd224..b06a6db 100644
+--- a/platform/NVMem.c
++++ b/platform/NVMem.c
+@@ -1,3 +1,7 @@
++/* SPDX-License-Identifier: BSD-2-Clause */
++/*
++ * Copyright (c) 2026, Siemens AG
++ */
+ /* Microsoft Reference Implementation for TPM 2.0
+  *
+  *  The copyright in this software is being made available under the BSD License,
+@@ -39,12 +43,12 @@
+ //    The implementation may become more sophisticated over time.
+ //
+ 
+-#include "TpmError.h"
+ #include "Admin.h"
+-#include "VendorString.h"
++#include <assert.h>
+ #include "stdint.h"
+ #include "malloc.h"
+ #include "string.h"
++#include "prototypes/platform_public_interface.h"
+ 
+ #include <tee_internal_api.h>
+ #include <tee_internal_api_extensions.h>
+@@ -116,12 +120,6 @@ static BOOL  s_NVChipFileNeedsManufacture = FALSE;
+ static BOOL  s_NVInitialized = FALSE;
+ static UCHAR s_NV[NV_CHIP_MEMORY_SIZE];
+ 
+-//
+-// Firmware revision
+-//
+-static const UINT32 firmwareV1 = FIRMWARE_V1;
+-static const UINT32 firmwareV2 = FIRMWARE_V2;
+-
+ //
+ // Revision fro NVChip
+ //
+@@ -241,7 +239,7 @@ _plat__NvInitFromStorage()
+ 	}
+ 
+ 	// Storage objects are open and valid, next validate revision
+-	s_chipRevision = ((((UINT64)firmwareV2) << 32) | (firmwareV1));
++	s_chipRevision = ((((UINT64)_plat__GetTpmFirmwareVersionLow()) << 32) | (_plat__GetTpmFirmwareVersionHigh()));
+ 	if ((s_chipRevision != *(UINT64*)&(s_NV[NV_CHIP_REVISION_OFFSET]))) {
+ 
+ 		// Failure to validate revision, re-init.
+@@ -251,7 +249,7 @@ _plat__NvInitFromStorage()
+ 		s_blockMap = NV_DIRTY_ALL;
+ 
+ 		// Init with proper revision
+-		s_chipRevision = ((((UINT64)firmwareV2) << 32) | (firmwareV1));
++		s_chipRevision = ((((UINT64)_plat__GetTpmFirmwareVersionLow()) << 32) | (_plat__GetTpmFirmwareVersionHigh()));
+ 		*(UINT64*)&(s_NV[NV_CHIP_REVISION_OFFSET]) = s_chipRevision;
+ 
+ #ifdef fTPMDebug
+@@ -380,16 +378,16 @@ _plat__NvNeedsManufacture()
+ //      <0          if unrecoverable error
+ LIB_EXPORT int
+ _plat__NVEnable(
+-    void            *platParameter  // IN: platform specific parameters
++    void            *platParameter,  // IN: platform specific parameters
++    size_t          paramSize
+ 	)
+ {
+     UNREFERENCED_PARAMETER(platParameter);
++    UNREFERENCED_PARAMETER(paramSize);
+ 	DMSG("_plat__NVEnable()");
+ 
+ 
+     UINT32 retVal = 0;
+-    UINT32 firmwareV1 = FIRMWARE_V1;
+-    UINT32 firmwareV2 = FIRMWARE_V2;
+ 
+     // Don't re-open the backing store.
+     if (s_NVInitialized) {
+@@ -400,7 +398,7 @@ _plat__NVEnable(
+     memset(s_NV, 0, NV_CHIP_MEMORY_SIZE);
+ 
+     // Prepare for potential failure to retreieve NV from storage
+-    s_chipRevision = ((((UINT64)firmwareV2) << 32) | (firmwareV1));
++    s_chipRevision = ((((UINT64)_plat__GetTpmFirmwareVersionLow()) << 32) | (_plat__GetTpmFirmwareVersionHigh()));
+     *(UINT64*)&(s_NV[NV_CHIP_REVISION_OFFSET]) = s_chipRevision;
+ 
+     // Pick up our NV memory.
+@@ -458,11 +456,15 @@ _plat__NVEnable(
+ // Disable NV memory
+ LIB_EXPORT void
+ _plat__NVDisable(
+-    void
++    void            *platParameter,
++    size_t          paramSize
+     )
+ {
+ 	UINT32 i;
+ 
++    UNREFERENCED_PARAMETER(platParameter);
++    UNREFERENCED_PARAMETER(paramSize);
++
+     if (!s_NVInitialized) {
+         return;
+     }
+@@ -491,7 +493,7 @@ _plat__NVDisable(
+ //      1               NV is not available due to write failure
+ //      2               NV is not available due to rate limit
+ LIB_EXPORT int
+-_plat__IsNvAvailable(
++_plat__GetNvReadyState(
+     void
+     )
+ {
+@@ -503,7 +505,7 @@ _plat__IsNvAvailable(
+ 
+ //***_plat__NvMemoryRead()
+ // Function: Read a chunk of NV memory
+-LIB_EXPORT void
++LIB_EXPORT int
+ _plat__NvMemoryRead(
+     unsigned int     startOffset,   // IN: read start
+     unsigned int     size,          // IN: size of bytes to read
+@@ -514,22 +516,30 @@ _plat__NvMemoryRead(
+     pAssert(s_NV != NULL);
+ 
+     memcpy(data, &s_NV[startOffset], size);
++    return TRUE;
+ }
+ 
+-//*** _plat__NvIsDifferent()
++//*** _plat__NvGetChangedStatus()
+ // This function checks to see if the NV is different from the test value. This is
+ // so that NV will not be written if it has not changed.
+ // return value: int
+-//  TRUE(1)    the NV location is different from the test value
+-//  FALSE(0)   the NV location is the same as the test value
+-LIB_EXPORT int
+-_plat__NvIsDifferent(
+-    unsigned int     startOffset,   // IN: read start
+-    unsigned int     size,          // IN: size of bytes to read
+-    void            *data           // IN: data buffer
++//      NV_HAS_CHANGED(1)       the NV location is different from the test value
++//      NV_IS_SAME(0)           the NV location is the same as the test value
++//      NV_INVALID_LOCATION(-1) the NV location is invalid; also triggers failure mode
++LIB_EXPORT int _plat__NvGetChangedStatus(
++    unsigned int startOffset,  // IN: read start
++    unsigned int size,         // IN: size of bytes to read
++    void*        data          // IN: data buffer
+     )
+ {
+-    return (memcmp(&s_NV[startOffset], data, size) != 0);
++    assert(startOffset + size <= NV_MEMORY_SIZE);
++    if(startOffset + size <= NV_MEMORY_SIZE)
++    {
++        return (memcmp(&s_NV[startOffset], data, size) != 0);
++    }
++    // the NV location is invalid; the assert above should have triggered failure
++    // mode
++    return NV_INVALID_LOCATION;
+ }
+ 
+ static
+@@ -584,7 +594,7 @@ _plat__NvMemoryWrite(
+ //***_plat__NvMemoryClear()
+ // Function is used to set a range of NV memory bytes to an implementation-dependent
+ // value. The value represents the erase state of the memory.
+-LIB_EXPORT void
++LIB_EXPORT int
+ _plat__NvMemoryClear(
+     unsigned int     start,         // IN: clear start
+     unsigned int     size           // IN: number of bytes to clear
+@@ -594,13 +604,14 @@ _plat__NvMemoryClear(
+ 
+ 	_plat__MarkDirtyBlocks(start, size);
+     memset(&s_NV[start], 0, size);
++    return TRUE;
+ }
+ 
+ //***_plat__NvMemoryMove()
+ // Function: Move a chunk of NV memory from source to destination
+ //      This function should ensure that if there overlap, the original data is
+ //      copied before it is written
+-LIB_EXPORT void
++LIB_EXPORT int
+ _plat__NvMemoryMove(
+     unsigned int     sourceOffset,  // IN: source offset
+     unsigned int     destOffset,    // IN: destination offset
+@@ -615,6 +626,7 @@ _plat__NvMemoryMove(
+ 	_plat__MarkDirtyBlocks(destOffset, size);
+ 
+     memmove(&s_NV[destOffset], &s_NV[sourceOffset], size);
++    return TRUE;
+ }
+ 
+ //***_plat__NvCommit()
+@@ -655,3 +667,13 @@ _plat__ClearNvAvail(
+     // The anti-set; not on this platform.
+     return;
+ }
++
++//***_plat__TearDown
++// notify platform that TPM_TearDown was called so platform can cleanup or
++// zeroize anything in the Platform.  This should zeroize NV as well.
++LIB_EXPORT void _plat__TearDown()
++{
++#if FILE_BACKED_NV
++    // remove(s_NvFilePath);
++#endif
++}
+diff --git a/platform/NvAdmin.c b/platform/NvAdmin.c
+index 2576001..6499ebd 100644
+--- a/platform/NvAdmin.c
++++ b/platform/NvAdmin.c
+@@ -1,3 +1,7 @@
++/* SPDX-License-Identifier: BSD-2-Clause */
++/*
++ * Copyright (c) 2026, Siemens AG
++ */
+ /* Microsoft Reference Implementation for TPM 2.0
+  *
+  *  The copyright in this software is being made available under the BSD License,
+@@ -34,9 +38,6 @@
+  */
+ 
+ //**Includes
+-// Force Global.h contents inclusion
+-#define GLOBAL_C
+-
+ #include "Admin.h"
+ 
+ //**Types, Structures, and Defines
+@@ -148,4 +149,4 @@ _admin__NvWriteState(
+ 
+     _plat__NvMemoryWrite(s_stateAddr[type], s_stateSize[type], buffer);
+     return;
+-}
+\ No newline at end of file
++}
+diff --git a/platform/PPPlat.c b/platform/PPPlat.c
+index 8b837a1..ffa3e8b 100644
+--- a/platform/PPPlat.c
++++ b/platform/PPPlat.c
+@@ -1,3 +1,7 @@
++/* SPDX-License-Identifier: BSD-2-Clause */
++/*
++ * Copyright (c) 2026, Siemens AG
++ */
+ /* Microsoft Reference Implementation for TPM 2.0
+  *
+  *  The copyright in this software is being made available under the BSD License,
+@@ -38,7 +42,8 @@
+ 
+ //** Includes
+ #include "PlatformData.h"
+-#include "Platform_fp.h"
++#include "platform_interface/tpm_to_platform_interface.h"
++#include "prototypes/platform_public_interface.h"
+ 
+ //** Functions
+ 
+@@ -77,4 +82,4 @@ _plat__Signal_PhysicalPresenceOff(
+ {
+     s_physicalPresence = FALSE;
+     return;
+-}
+\ No newline at end of file
++}
+diff --git a/platform/PlatformACT.c b/platform/PlatformACT.c
+index 9528b08..54f35fa 100644
+--- a/platform/PlatformACT.c
++++ b/platform/PlatformACT.c
+@@ -1,3 +1,7 @@
++/* SPDX-License-Identifier: BSD-2-Clause */
++/*
++ * Copyright (c) 2026, Siemens AG
++ */
+ /* Microsoft Reference Implementation for TPM 2.0
+  *
+  *  The copyright in this software is being made available under the BSD License,
+@@ -33,7 +37,8 @@
+  *  SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+  */
+ //** Includes
+-#include "Platform.h"
++#include "Tpm.h"
++#include "PlatformACT.h"
+ 
+ //** Global variables
+ #define DEFINE_ACT(N)  ACT_DATA ACT_##N;
+diff --git a/platform/PlatformData.c b/platform/PlatformData.c
+index ce37940..2b5a165 100644
+--- a/platform/PlatformData.c
++++ b/platform/PlatformData.c
+@@ -1,3 +1,7 @@
++/* SPDX-License-Identifier: BSD-2-Clause */
++/*
++ * Copyright (c) 2026, Siemens AG
++ */
+ /* Microsoft Reference Implementation for TPM 2.0
+  *
+  *  The copyright in this software is being made available under the BSD License,
+@@ -37,7 +41,7 @@
+ // descriptions for these variables are in Global.h for this project.
+ 
+ //** Includes
+-#include    "TpmProfile.h"
++#include    "TpmConfiguration/TpmProfile.h"
+ #include    "PlatformData.h"
+ 
+ // From Cancel.c
+diff --git a/platform/PlatformPcr.c b/platform/PlatformPcr.c
+new file mode 100644
+index 0000000..473d568
+--- /dev/null
++++ b/platform/PlatformPcr.c
+@@ -0,0 +1,194 @@
++/* SPDX-License-Identifier: BSD-2-Clause */
++/*
++ * Copyright (c) 2026, Siemens AG
++ */
++// Copied from the TCG reference implementation, see
++// https://github.com/TrustedComputingGroup/TPM/tree/main/TPMCmd/Platform/src/PlatformPcr.c, tag V184
++/*
++ * TCG Reference Implementation for TPM 2.0
++ * This code is informative.
++ *
++ * The copyright in this software is being made available under the BSD License,
++ * included below.
++ *
++ * Copyright 2010-2022 Microsoft Corporation
++ * Copyright 2022-2025 Trusted Computing Group and its contributors
++ *
++ * All rights reserved.
++ *
++ * BSD License
++ *
++ * Redistribution and use in source and binary forms, with or without
++ * modification, are permitted provided that the following conditions are met:
++ *
++ * Redistributions of source code must retain the above copyright notice, this
++ * list of conditions and the following disclaimer.
++ *
++ * Redistributions in binary form must reproduce the above copyright notice, this
++ * list of conditions and the following disclaimer in the documentation and/or
++ * other materials provided with the distribution.
++ *
++ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS ""AS IS""
++ * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
++ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
++ * DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
++ * FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
++ * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
++ * SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
++ * CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
++ * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
++ * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
++ */
++
++// PCR platform interface functions
++#include "Tpm.h"
++#include <tpm_public/TpmAlgorithmDefines.h>
++
++// use this as a convenient lookup for hash size for PCRs.
++UINT16 CryptHashGetDigestSize(TPM_ALG_ID hashAlg  // IN: hash algorithm to look up
++);
++void   MemorySet(void* dest, int value, size_t size);
++
++// The initial value of PCR attributes.  The value of these fields should be
++// consistent with PC Client specification.  The bitfield meanings are defined by
++// the TPM Reference code.
++// In this implementation, we assume the total number of implemented PCR is 24.
++static const PCR_Attributes s_initAttributes[] = {
++    //
++    // PCR 0 - 15, static RTM
++    // PCR[0]
++    {
++        1,  // save state
++        0,  // in the "do not increment the PcrCounter" group? (0 = increment the PcrCounter)
++        0,  // supportsPolicyAuth group number? 0 = policyAuth not supported for this PCR.
++        0,  // supportsAuthValue group number? 0 = AuthValue not supported for this PCR.
++        0,    // 0 = reset localities (cannot reset)
++        0x1F  // 0x1F = extendlocalities [0,4]
++    },
++    {1, 0, 0, 0, 0, 0x1F},  // PCR 1-3
++    {1, 0, 0, 0, 0, 0x1F},
++    {1, 0, 0, 0, 0, 0x1F},
++    {1, 0, 0, 0, 0, 0x1F},  // PCR 4-6
++    {1, 0, 0, 0, 0, 0x1F},
++    {1, 0, 0, 0, 0, 0x1F},
++    {1, 0, 0, 0, 0, 0x1F},  // PCR 7-9
++    {1, 0, 0, 0, 0, 0x1F},
++    {1, 0, 0, 0, 0, 0x1F},
++    {1, 0, 0, 0, 0, 0x1F},  // PCR 10-12
++    {1, 0, 0, 0, 0, 0x1F},
++    {1, 0, 0, 0, 0, 0x1F},
++    {1, 0, 0, 0, 0, 0x1F},  // PCR 13-15
++    {1, 0, 0, 0, 0, 0x1F},
++    {1, 0, 0, 0, 0, 0x1F},
++
++    // these PCRs are never saved
++    {0, 0, 0, 0, 0x0F, 0x1F},  // PCR 16, Debug, reset allowed, extend all
++    {0, 0, 0, 0, 0x10, 0x1C},  // PCR 17, Locality 4, extend loc 2+
++    {0, 0, 0, 0, 0x10, 0x1C},  // PCR 18, Locality 3, extend loc 2+
++    {0, 0, 0, 0, 0x10, 0x0C},  // PCR 19, Locality 2, extend loc 2, 3
++    // these three support doNotIncrement, PolicyAuth, and AuthValue.
++    // this is consistent with the existing behavior of the TPM Reference code
++    // but differs from the behavior of the PC client spec.
++    {0, 1, 1, 1, 0x14, 0x0E},  // PCR 20, Locality 1, extend loc 1, 2, 3
++    {0, 1, 1, 1, 0x14, 0x04},  // PCR 21, Dynamic OS, extend loc 2
++    {0, 1, 1, 1, 0x14, 0x04},  // PCR 22, Dynamic OS, extend loc 2
++    {0, 0, 0, 0, 0x0F, 0x1F},  // PCR 23, reset allowed, App specific, extend all
++};
++
++#ifndef ARRAYSIZE
++#  define ARRAYSIZE(a) (sizeof(a) / sizeof(a[0]))
++#endif
++
++MUST_BE(ARRAYSIZE(s_initAttributes) == IMPLEMENTATION_PCR);
++
++#if ALG_SHA256 != YES && ALG_SHA384 != YES
++#  error No default PCR banks defined
++#endif
++
++static const TPM_ALG_ID DefaultActivePcrBanks[] = {
++#if ALG_SHA256
++    TPM_ALG_SHA256
++#endif
++#if ALG_SHA384
++#  if ALG_SHA256
++    ,
++#  endif
++    TPM_ALG_SHA384
++#endif
++};
++
++UINT32 _platPcr__NumberOfPcrs(void)
++{
++    return ARRAYSIZE(s_initAttributes);
++}
++
++// return the initialization attributes of a given PCR.
++// pcrNumber expected to be in [0, _platPcr__NumberOfPcrs)
++// returns the attributes for PCR[0] if the requested pcrNumber is out of range.
++PCR_Attributes _platPcr__GetPcrInitializationAttributes(UINT32 pcrNumber)
++{
++    if(pcrNumber >= _platPcr__NumberOfPcrs())
++    {
++        pcrNumber = 0;
++    }
++    return s_initAttributes[pcrNumber];
++}
++
++// should the given PCR algorithm default to active in a new TPM?
++BOOL _platPcr_IsPcrBankDefaultActive(TPM_ALG_ID pcrAlg)
++{
++    // brute force search is fast enough for a small array.
++    for(unsigned int i = 0; i < ARRAYSIZE(DefaultActivePcrBanks); i++)
++    {
++        if(DefaultActivePcrBanks[i] == pcrAlg)
++        {
++            return TRUE;
++        }
++    }
++    return FALSE;
++}
++
++// Fill a given buffer with the PCR initialization value for a particular PCR and hash
++// combination, and return its length.  If the platform doesn't have a value, then
++// the result size is expected to be zero, and the rfunction will return TPM_RC_PCR.
++// If a valid is not available, then the core TPM library will ignore the value and
++// treat it as non-existant and provide a default.
++// If the buffer is not large enough for a pcr consistent with pcrAlg, then the
++// platform will return TPM_RC_FAILURE.
++TPM_RC _platPcr__GetInitialValueForPcr(
++    UINT32     pcrNumber,        // IN: PCR to be initialized
++    TPM_ALG_ID pcrAlg,           // IN: Algorithm of the PCR Bank being initialized
++    BYTE       startupLocality,  // IN: locality where startup is being called from
++    BYTE*      pcrData,          // OUT: buffer to put PCR initialization value into
++    uint16_t   bufferSize,       // IN: maximum size of value buffer can hold
++    uint16_t*  pcrLength  // OUT: size of initialization value returned in pcrBuffer
++)
++{
++    // If the reset locality contains locality 4, then this
++    // indicates a DRTM PCR where the reset value is all ones,
++    // otherwise it is all zero.  Don't check with equal because
++    // resetLocality is a bitfield of multiple values and does
++    // not support extended localities.
++    uint16_t pcrSize = CryptHashGetDigestSize(pcrAlg);
++    pAssert_RC(pcrNumber < _platPcr__NumberOfPcrs());
++    pAssert_RC(bufferSize >= pcrSize) pAssert_RC(pcrLength != NULL);
++
++    PCR_Attributes pcrAttributes =
++        _platPcr__GetPcrInitializationAttributes(pcrNumber);
++    BYTE defaultValue = 0;
++    // PCRs that can be cleared from locality 4 are DRTM and initialize to all 0xFF
++    if((pcrAttributes.resetLocality & 0x10) != 0)
++    {
++        defaultValue = 0xFF;
++    }
++    MemorySet(pcrData, defaultValue, pcrSize);
++    if(pcrNumber == HCRTM_PCR)
++    {
++        pcrData[pcrSize - 1] = startupLocality;
++    }
++
++    // platform could provide a value here if the platform has initialization rules
++    // different from the original PC Client spec (the default used by the Core library).
++    *pcrLength = pcrSize;
++    return TPM_RC_SUCCESS;
++}
+diff --git a/platform/PowerPlat.c b/platform/PowerPlat.c
+index c562d44..27de17b 100644
+--- a/platform/PowerPlat.c
++++ b/platform/PowerPlat.c
+@@ -1,3 +1,7 @@
++/* SPDX-License-Identifier: BSD-2-Clause */
++/*
++ * Copyright (c) 2026, Siemens AG
++ */
+ /* Microsoft Reference Implementation for TPM 2.0
+  *
+  *  The copyright in this software is being made available under the BSD License,
+@@ -35,8 +39,9 @@
+ //** Includes and Function Prototypes
+ 
+ #include    "PlatformData.h"
+-#include    "Platform_fp.h"
+-#include    "_TPM_Init_fp.h"
++#include    "platform_interface/tpm_to_platform_interface.h"
++#include    "prototypes/platform_public_interface.h"
++#include    "platform_interface/prototypes/_TPM_Init_fp.h"
+ 
+ //** Functions
+ 
+@@ -107,7 +112,7 @@ _plat__Signal_PowerOff(
+     )
+ {
+     // Prepare NV memory for power off
+-    _plat__NVDisable();
++    _plat__NVDisable(NULL, 0);
+ 
+     return;
+-}
+\ No newline at end of file
++}
+diff --git a/platform/RunCommand.c b/platform/RunCommand.c
+index 78c641a..100cf4c 100644
+--- a/platform/RunCommand.c
++++ b/platform/RunCommand.c
+@@ -1,3 +1,7 @@
++/* SPDX-License-Identifier: BSD-2-Clause */
++/*
++ * Copyright (c) 2026, Siemens AG
++ */
+ /* Microsoft Reference Implementation for TPM 2.0
+  *
+  *  The copyright in this software is being made available under the BSD License,
+@@ -48,9 +52,10 @@
+ 
+ //** Includes and locals
+ #include "PlatformData.h"
+-#include "Platform_fp.h"
++#include "platform_interface/tpm_to_platform_interface.h"
++#include "prototypes/platform_public_interface.h"
+ #include <setjmp.h>
+-#include "ExecCommand_fp.h"
++#include "platform_interface/prototypes/ExecCommand_fp.h"
+ 
+ #include <tee_internal_api.h>
+ #include <tee_internal_api_extensions.h>
+@@ -77,15 +82,3 @@ _plat__RunCommand(
+     setjmp(s_jumpBuffer);
+     ExecuteCommand(requestSize, request, responseSize, response);
+ }
+-
+-
+-//***_plat__Fail()
+-// This is the platform depended failure exit for the TPM.
+-LIB_EXPORT NORETURN void
+-_plat__Fail(
+-    void
+-    )
+-{
+-    TEE_Panic(TEE_ERROR_BAD_STATE);
+-    while (true); /* Not reached */
+-}
+diff --git a/platform/SelfTest.c b/platform/SelfTest.c
+new file mode 100644
+index 0000000..a39b69e
+--- /dev/null
++++ b/platform/SelfTest.c
+@@ -0,0 +1,18 @@
++/* SPDX-License-Identifier: BSD-2-Clause */
++/*
++ * Copyright (c) 2026, Siemens AG
++ */
++#include "Platform.h"
++#include <tpm_public/TpmAlgorithmDefines.h>
++#include <tpm_public/TpmTypes.h>
++
++LIB_EXPORT void _plat_GetEnabledSelfTest(
++    uint8_t  fullTest,         // IN: full test or not
++    uint8_t* pToTestVector,    // INOUT: initialized byte array of tracked tests
++    size_t   toTestVectorSize  // IN: size of the byte array in bytes
++)
++{
++    (void)fullTest;
++    (void)pToTestVector;
++    (void)toTestVectorSize;
++}
+diff --git a/platform/Unique.c b/platform/Unique.c
+deleted file mode 100644
+index 4702670..0000000
+--- a/platform/Unique.c
++++ /dev/null
+@@ -1,102 +0,0 @@
+-/* Microsoft Reference Implementation for TPM 2.0
+- *
+- *  The copyright in this software is being made available under the BSD License,
+- *  included below. This software may be subject to other third party and
+- *  contributor rights, including patent rights, and no such rights are granted
+- *  under this license.
+- *
+- *  Copyright (c) Microsoft Corporation
+- *
+- *  All rights reserved.
+- *
+- *  BSD License
+- *
+- *  Redistribution and use in source and binary forms, with or without modification,
+- *  are permitted provided that the following conditions are met:
+- *
+- *  Redistributions of source code must retain the above copyright notice, this list
+- *  of conditions and the following disclaimer.
+- *
+- *  Redistributions in binary form must reproduce the above copyright notice, this
+- *  list of conditions and the following disclaimer in the documentation and/or
+- *  other materials provided with the distribution.
+- *
+- *  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS ""AS IS""
+- *  AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+- *  IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+- *  DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR
+- *  ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+- *  (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+- *  LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON
+- *  ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+- *  (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+- *  SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+- */
+-//** Introduction
+-// In some implementations of the TPM, the hardware can provide a secret
+-// value to the TPM. This secret value is statistically unique to the
+-// instance of the TPM. Typical uses of this value are to provide
+-// personalization to the random number generation and as a shared secret
+-// between the TPM and the manufacturer.
+-
+-//** Includes
+-#include "PlatformData.h"
+-#include "Platform_fp.h"
+-
+-#include <tee_internal_api.h>
+-#include <assert.h>
+-
+-//static TEE_UUID deviceUniqueValue = { 0 };
+-static char *deviceUniqueValue[sizeof(TEE_UUID)+1];
+-static bool initializedUniqueValue = false;
+-
+-//** _plat__GetUnique()
+-// This function is used to access the platform-specific unique value.
+-// This function places the unique value in the provided buffer ('b')
+-// and returns the number of bytes transferred. The function will not
+-// copy more data than 'bSize'.
+-// NOTE: If a platform unique value has unequal distribution of uniqueness
+-// and 'bSize' is smaller than the size of the unique value, the 'bSize'
+-// portion with the most uniqueness should be returned.
+-LIB_EXPORT uint32_t
+-_plat__GetUnique(
+-    uint32_t             which,         // authorities (0) or details
+-    uint32_t             bSize,         // size of the buffer
+-    unsigned char       *b              // output buffer
+-    )
+-{
+-    const char          *from = (char *)&deviceUniqueValue;
+-    uint32_t            uSize = sizeof(TEE_UUID) + 1;
+-    uint32_t            retVal = 0;
+-    TEE_Result          teeResult;
+-
+-    // Check if we've initialized our unique platform value.
+-    if (!initializedUniqueValue) {
+-        teeResult = TEE_GetPropertyAsUUID(TEE_PROPSET_TEE_IMPLEMENTATION,
+-                                       "gpd.tee.deviceID",
+-                                       (TEE_UUID*)&deviceUniqueValue);
+-        assert(teeResult == TEE_SUCCESS);
+-    }
+-    deviceUniqueValue[uSize-1] = '\0';
+-
+-    if(which == 0) // the authorities value
+-    {
+-        for(retVal = 0;
+-        *from != 0 && retVal < bSize;
+-            retVal++)
+-        {
+-            *b++ = *from++;
+-        }
+-    }
+-    else
+-    {
+-        b = &b[((bSize < uSize) ? bSize : uSize) - 1];
+-        for(retVal = 0;
+-        *from != 0 && retVal < bSize;
+-            retVal++)
+-        {
+-            *b-- = *from++;
+-        }
+-    }
+-    return retVal;
+-}
+\ No newline at end of file
+diff --git a/platform/VendorInfo.c b/platform/VendorInfo.c
+new file mode 100644
+index 0000000..63710f3
+--- /dev/null
++++ b/platform/VendorInfo.c
+@@ -0,0 +1,220 @@
++/* SPDX-License-Identifier: BSD-2-Clause */
++/*
++ * Copyright (c) 2026, Siemens AG
++ */
++// Copied from the TCG reference implementation, see
++// https://github.com/TrustedComputingGroup/TPM/tree/main/TPMCmd/Platform/src/VendorInfo.c, tag V184
++/*
++ * TCG Reference Implementation for TPM 2.0
++ * This code is informative.
++ *
++ * The copyright in this software is being made available under the BSD License,
++ * included below.
++ *
++ * Copyright 2010-2022 Microsoft Corporation
++ * Copyright 2022-2025 Trusted Computing Group and its contributors
++ *
++ * All rights reserved.
++ *
++ * BSD License
++ *
++ * Redistribution and use in source and binary forms, with or without
++ * modification, are permitted provided that the following conditions are met:
++ *
++ * Redistributions of source code must retain the above copyright notice, this
++ * list of conditions and the following disclaimer.
++ *
++ * Redistributions in binary form must reproduce the above copyright notice, this
++ * list of conditions and the following disclaimer in the documentation and/or
++ * other materials provided with the distribution.
++ *
++ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS ""AS IS""
++ * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
++ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
++ * DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
++ * FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
++ * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
++ * SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
++ * CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
++ * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
++ * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
++ */
++
++//** Introduction
++// Provide vendor-specific version and identifiers to core TPM library for
++// return in capabilities.  These may not be compile time constants and therefore
++// are provided by platform callbacks.  These platform functions are expected to
++// always be available, even in failure mode.
++//
++//** Includes
++#include "Platform.h"
++
++// In this sample platform, these are compile time constants, but are not required to be.
++#define MANUFACTURER    "OPTE"
++#define VENDOR_STRING_1 "xCG "
++#define VENDOR_STRING_2 "fTPM"
++#define VENDOR_STRING_3 "\0\0\0\0"
++#define VENDOR_STRING_4 "\0\0\0\0"
++#define FIRMWARE_V1     (0x20260326)
++#define FIRMWARE_V2     (0x00130000)
++#define MAX_SVN         255
++
++#if (FW_LIMITED_SUPPORT || SIMULATION)
++static uint32_t currentHash = FIRMWARE_V2;
++#endif
++static uint16_t currentSvn  = 10;
++
++// Similar to the Core Library's ByteArrayToUint32, but usable in Platform code.
++static uint32_t StringToUint32(const char s[4])
++{
++    uint8_t* b = (uint8_t*)s;  // Avoid promotion to a signed integer type
++    return (((uint32_t)b[0] << 8 | b[1]) << 8 | b[2]) << 8 | b[3];
++}
++
++// return the 4 character Manufacturer Capability code.  This
++// should come from the platform library since that is provided by the manufacturer
++LIB_EXPORT uint32_t _plat__GetManufacturerCapabilityCode(void)
++{
++    return StringToUint32(MANUFACTURER);
++}
++
++// return the 4 character VendorStrings for Capabilities.
++// Index is ONE-BASED, and may be in the range [1,4] inclusive.
++// Any other index returns all zeros. The return value will be interpreted
++// as an array of 4 ASCII characters (with no null terminator)
++LIB_EXPORT uint32_t _plat__GetVendorCapabilityCode(int index)
++{
++    switch(index)
++    {
++        case 1:
++            return StringToUint32(VENDOR_STRING_1);
++        case 2:
++            return StringToUint32(VENDOR_STRING_2);
++        case 3:
++            return StringToUint32(VENDOR_STRING_3);
++        case 4:
++            return StringToUint32(VENDOR_STRING_4);
++    }
++    return 0;
++}
++
++// return the most-significant 32-bits of the TPM Firmware Version reported by
++// getCapability.
++LIB_EXPORT uint32_t _plat__GetTpmFirmwareVersionHigh(void)
++{
++    return FIRMWARE_V1;
++}
++
++// return the least-significant 32-bits of the TPM Firmware Version reported by
++// getCapability.
++LIB_EXPORT uint32_t _plat__GetTpmFirmwareVersionLow(void)
++{
++    return FIRMWARE_V2;
++}
++
++// return the TPM Firmware SVN reported by getCapability.
++LIB_EXPORT uint16_t _plat__GetTpmFirmwareSvn(void)
++{
++    return currentSvn;
++}
++
++// return the TPM Firmware maximum SVN reported by getCapability.
++LIB_EXPORT uint16_t _plat__GetTpmFirmwareMaxSvn(void)
++{
++    return MAX_SVN;
++}
++
++// Called by the simulator to set the TPM Firmware SVN reported by
++// getCapability.
++#if SIMULATION
++LIB_EXPORT void _plat__SetTpmFirmwareHash(uint32_t hash)
++{
++    currentHash = hash;
++}
++#endif
++
++// Called by the simulator to set the TPM Firmware SVN reported by
++// getCapability.
++#if SIMULATION
++LIB_EXPORT void _plat__SetTpmFirmwareSvn(uint16_t svn)
++{
++    currentSvn = MIN(svn, MAX_SVN);
++}
++#endif
++
++#if SVN_LIMITED_SUPPORT
++// Dummy implmenentation for obtaining a Firmware SVN Secret bound
++// to the given SVN.
++LIB_EXPORT int _plat__GetTpmFirmwareSvnSecret(uint16_t  svn,
++                                              uint16_t  secret_buf_size,
++                                              uint8_t*  secret_buf,
++                                              uint16_t* secret_size)
++{
++    int i;
++
++    if(svn > currentSvn)
++    {
++        return -1;
++    }
++
++    // INSECURE dummy implementation: repeat the SVN into the secret buffer.
++    for(i = 0; i < secret_buf_size; ++i)
++    {
++        secret_buf[i] = ((uint8_t*)&svn)[i % sizeof(svn)];
++    }
++
++    *secret_size = secret_buf_size;
++
++    return 0;
++}
++#endif  // SVN_LIMITED_SUPPORT
++
++#if FW_LIMITED_SUPPORT
++// Dummy implmenentation for obtaining a Firmware Secret bound
++// to the current firmware image.
++LIB_EXPORT int _plat__GetTpmFirmwareSecret(
++    uint16_t secret_buf_size, uint8_t* secret_buf, uint16_t* secret_size)
++{
++    int i;
++
++    // INSECURE dummy implementation: repeat the firmware hash into the
++    // secret buffer.
++    for(i = 0; i < secret_buf_size; ++i)
++    {
++        secret_buf[i] = ((uint8_t*)&currentHash)[i % sizeof(currentHash)];
++    }
++
++    *secret_size = secret_buf_size;
++
++    return 0;
++}
++#endif  // FW_LIMITED_SUPPORT
++
++// return the TPM Type returned by TPM_PT_VENDOR_TPM_TYPE
++LIB_EXPORT uint32_t _plat__GetVendorTpmType(void)
++{
++    return 1;  // just the value the reference code has returned in the past.
++}
++
++LIB_EXPORT void _plat_GetSpecCapabilityValue(SPEC_CAPABILITY_VALUE* returnData)
++{
++    // clang-format off
++    // this is on the title page of part1 of the TPM spec
++    returnData->tpmSpecLevel      = 0;
++    // these come from part2 of the TPM spec
++    returnData->tpmSpecVersion    = 184;
++    returnData->tpmSpecYear       = 2025;
++    returnData->tpmSpecDayOfYear  = 79; // March 20
++    // these come from the PC Client Platform TPM Profile Specification
++    returnData->platformFamily    = 1;
++    returnData->platfromLevel     = 0;
++    // The platform spec version is recorded such that 0x00000101 means version 1.01
++    // Note this differs from some TPM/TCG specifications, but matches the behavior of Windows.
++    // more recent TCG specs have discontinued using this field, but Windows displays it, so we
++    // retain it using the historical encoding.
++    returnData->platformRevision  = 0x105;
++    returnData->platformYear      = 0;
++    returnData->platformDayOfYear = 0;
++    // clang-format on
++    return;
++}
+diff --git a/platform/include/Admin.h b/platform/include/Admin.h
+index cb7e4d9..1a9a54a 100644
+--- a/platform/include/Admin.h
++++ b/platform/include/Admin.h
+@@ -1,6 +1,7 @@
+ /* SPDX-License-Identifier: BSD-2-Clause */
+ /*
+  * Copyright (c) 2024, Linaro Limited
++ * Copyright (c) 2026, Siemens AG
+  */
+ /* Microsoft Reference Implementation for TPM 2.0
+  *
+@@ -48,12 +49,10 @@
+ #define _ADMIN_H
+ 
+ //**Includes
+-#include <stdint.h>
++#include "Tpm.h"
+ #include <trace.h>
+-#include "swap.h"
+-#include "TpmProfile.h"
++#include "TpmConfiguration/TpmProfile.h"
+ #include "TpmSal.h"
+-#include "TpmError.h"
+ #include "GpMacros.h"
+ 
+ // Parameter reference and types from ref impl headers
+diff --git a/platform/include/Platform.h b/platform/include/Platform.h
+index b95a193..a87aee7 100644
+--- a/platform/include/Platform.h
++++ b/platform/include/Platform.h
+@@ -1,3 +1,7 @@
++/* SPDX-License-Identifier: BSD-2-Clause */
++/*
++ * Copyright (c) 2026, Siemens AG
++ */
+ /* Microsoft Reference Implementation for TPM 2.0
+  *
+  *  The copyright in this software is being made available under the BSD License,
+@@ -36,17 +40,21 @@
+ #ifndef    _PLATFORM_H_
+ #define    _PLATFORM_H_
+ 
+-#include "TpmBuildSwitches.h"
++#include "TpmConfiguration/TpmBuildSwitches.h"
+ #include "BaseTypes.h"
+ #include "TPMB.h"
+ #include "MinMax.h"
+ 
+-#include "TpmProfile.h"
++#include "TpmConfiguration/TpmProfile.h"
+ 
+ #include "PlatformACT.h"
+ #include "PlatformClock.h"
+ #include "PlatformData.h"
+-#include "Platform_fp.h"
++#include "prototypes/platform_public_interface.h"
++// TODO_RENAME_INC_FOLDER:platform_interface refers to the TPM_CoreLib platform interface
++//#include <platform_interface/tpm_to_platform_interface.h>
++//#include <platform_interface/platform_to_tpm_interface.h>
++#include "PlatformInternal.h"
+ 
+ 
+ #endif  // _PLATFORM_H_
+diff --git a/platform/include/PlatformData.h b/platform/include/PlatformData.h
+index 0beb4c2..bc9c5aa 100644
+--- a/platform/include/PlatformData.h
++++ b/platform/include/PlatformData.h
+@@ -1,3 +1,7 @@
++/* SPDX-License-Identifier: BSD-2-Clause */
++/*
++ * Copyright (c) 2026, Siemens AG
++ */
+ /* Microsoft Reference Implementation for TPM 2.0
+  *
+  *  The copyright in this software is being made available under the BSD License,
+@@ -38,8 +42,8 @@
+ #ifndef _PLATFORM_DATA_H_
+ #define _PLATFORM_DATA_H_
+ 
+-
+-#include      "TpmProfile.h"
++#include      "Tpm.h"
++#include      "TpmConfiguration/TpmProfile.h"
+ 
+ // From Cancel.c
+ // Cancel flag.  It is initialized as FALSE, which indicate the command is not
+diff --git a/platform/include/Platform_fp.h b/platform/include/Platform_fp.h
+deleted file mode 100644
+index 74069e6..0000000
+--- a/platform/include/Platform_fp.h
++++ /dev/null
+@@ -1,492 +0,0 @@
+-/* Microsoft Reference Implementation for TPM 2.0
+- *
+- *  The copyright in this software is being made available under the BSD License,
+- *  included below. This software may be subject to other third party and
+- *  contributor rights, including patent rights, and no such rights are granted
+- *  under this license.
+- *
+- *  Copyright (c) Microsoft Corporation
+- *
+- *  All rights reserved.
+- *
+- *  BSD License
+- *
+- *  Redistribution and use in source and binary forms, with or without modification,
+- *  are permitted provided that the following conditions are met:
+- *
+- *  Redistributions of source code must retain the above copyright notice, this list
+- *  of conditions and the following disclaimer.
+- *
+- *  Redistributions in binary form must reproduce the above copyright notice, this
+- *  list of conditions and the following disclaimer in the documentation and/or
+- *  other materials provided with the distribution.
+- *
+- *  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS ""AS IS""
+- *  AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+- *  IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+- *  DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR
+- *  ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+- *  (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+- *  LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON
+- *  ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+- *  (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+- *  SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+- */
+-/*(Auto-generated)
+- *  Created by TpmPrototypes; Version 3.0 July 18, 2017
+- *  Date: Aug  7, 2018  Time: 03:39:35PM
+- */
+-
+-#ifndef    _PLATFORM_FP_H_
+-#define    _PLATFORM_FP_H_
+-
+-//** From EPS.c
+-
+-LIB_EXPORT void
+-_plat__GetEPS(UINT16 Size, uint8_t *EndorsementSeed);
+-
+-//** From Cancel.c
+-
+-//***_plat__IsCanceled()
+-// Check if the cancel flag is set
+-// return type: BOOL
+-//      TRUE(1)      if cancel flag is set
+-//      FALSE(0)     if cancel flag is not set
+-LIB_EXPORT int
+-_plat__IsCanceled(
+-    void
+-    );
+-
+-// Set cancel flag.
+-LIB_EXPORT void
+-_plat__SetCancel(
+-    void
+-    );
+-
+-//***_plat__ClearCancel()
+-// Clear cancel flag
+-LIB_EXPORT void
+-_plat__ClearCancel(
+-    void
+-    );
+-
+-
+-//** From Clock.c
+-
+-//***_plat__TimerReset()
+-// This function sets current system clock time as t0 for counting TPM time.
+-// This function is called at a power on event to reset the clock. When the clock
+-// is reset, the indication that the clock was stopped is also set.
+-LIB_EXPORT void
+-_plat__TimerReset(
+-    void
+-    );
+-
+-//*** _plat__TimerRestart()
+-// This function should be called in order to simulate the restart of the timer
+-// should it be stopped while power is still applied.
+-LIB_EXPORT void
+-_plat__TimerRestart(
+-    void
+-    );
+-
+-//*** _plat__RealTime()
+-// This is another, probably futile, attempt to define a portable function
+-// that will return a 64-bit clock value that has mSec resolution.
+-uint64_t
+-_plat__RealTime(
+-    void
+-);
+-
+-//***_plat__TimerRead()
+-// This function provides access to the tick timer of the platform. The TPM code
+-// uses this value to drive the TPM Clock.
+-//
+-// The tick timer is supposed to run when power is applied to the device. This timer
+-// should not be reset by time events including _TPM_Init. It should only be reset
+-// when TPM power is re-applied.
+-//
+-// If the TPM is run in a protected environment, that environment may provide the
+-// tick time to the TPM as long as the time provided by the environment is not
+-// allowed to go backwards. If the time provided by the system can go backwards
+-// during a power discontinuity, then the _plat__Signal_PowerOn should call
+-// _plat__TimerReset().
+-LIB_EXPORT uint64_t
+-_plat__TimerRead(
+-    void
+-    );
+-
+-//*** _plat__TimerWasReset()
+-// This function is used to interrogate the flag indicating if the tick timer has
+-// been reset.
+-//
+-// If the resetFlag parameter is SET, then the flag will be CLEAR before the
+-// function returns.
+-LIB_EXPORT BOOL
+-_plat__TimerWasReset(
+-   void
+-    );
+-
+-//*** _plat__TimerWasStopped()
+-// This function is used to interrogate the flag indicating if the tick timer has
+-// been stopped. If so, this is typically a reason to roll the nonce.
+-//
+-// This function will CLEAR the s_timerStopped flag before returning. This provides
+-// functionality that is similar to status register that is cleared when read. This
+-// is the model used here because it is the one that has the most impact on the TPM
+-// code as the flag can only be accessed by one entity in the TPM. Any other
+-// implementation of the hardware can be made to look like a read-once register.
+-LIB_EXPORT BOOL
+-_plat__TimerWasStopped(
+-    void
+-    );
+-
+-//***_plat__ClockAdjustRate()
+-// Adjust the clock rate
+-LIB_EXPORT void
+-_plat__ClockAdjustRate(
+-    int              adjust         // IN: the adjust number.  It could be positive
+-                                    //     or negative
+-    );
+-
+-
+-//** From Entropy.c
+-
+-//** _plat__GetEntropy()
+-// This function is used to get available hardware entropy. In a hardware
+-// implementation of this function, there would be no call to the system
+-// to get entropy.
+-// return type: int32_t
+-//  < 0        hardware failure of the entropy generator, this is sticky
+-// >= 0        the returned amount of entropy (bytes)
+-//
+-LIB_EXPORT int32_t
+-_plat__GetEntropy(
+-    unsigned char       *entropy,           // output buffer
+-    uint32_t             amount             // amount requested
+-    );
+-
+-
+-//** From LocalityPlat.c
+-
+-//***_plat__LocalityGet()
+-// Get the most recent command locality in locality value form.
+-// This is an integer value for locality and not a locality structure
+-// The locality can be 0-4 or 32-255. 5-31 is not allowed.
+-LIB_EXPORT unsigned char
+-_plat__LocalityGet(
+-    void
+-    );
+-
+-//***_plat__LocalitySet()
+-// Set the most recent command locality in locality value form
+-LIB_EXPORT void
+-_plat__LocalitySet(
+-    unsigned char    locality
+-    );
+-
+-
+-//** From NVMem.c
+-
+-//*** _plat__NvErrors()
+-// This function is used by the simulator to set the error flags in the NV
+-// subsystem to simulate an error in the NV loading process
+-LIB_EXPORT void
+-_plat__NvErrors(
+-    int              recoverable,
+-    int              unrecoverable
+-    );
+-
+-//***_plat__NVEnable()
+-// Enable NV memory.
+-//
+-// This version just pulls in data from a file. In a real TPM, with NV on chip,
+-// this function would verify the integrity of the saved context. If the NV
+-// memory was not on chip but was in something like RPMB, the NV state would be
+-// read in, decrypted and integrity checked.
+-//
+-// The recovery from an integrity failure depends on where the error occurred. It
+-// it was in the state that is discarded by TPM Reset, then the error is
+-// recoverable if the TPM is reset. Otherwise, the TPM must go into failure mode.
+-// return type: int
+-//      0           if success
+-//      > 0         if receive recoverable error
+-//      <0          if unrecoverable error
+-LIB_EXPORT int
+-_plat__NVEnable(
+-    void            *platParameter  // IN: platform specific parameters
+-    );
+-
+-//***_plat__NVDisable()
+-// Disable NV memory
+-LIB_EXPORT void
+-_plat__NVDisable(
+-    void
+-    );
+-
+-//***_plat__IsNvAvailable()
+-// Check if NV is available
+-// return type: int
+-//      0               NV is available
+-//      1               NV is not available due to write failure
+-//      2               NV is not available due to rate limit
+-LIB_EXPORT int
+-_plat__IsNvAvailable(
+-    void
+-    );
+-
+-//***_plat__NvMemoryRead()
+-// Function: Read a chunk of NV memory
+-LIB_EXPORT void
+-_plat__NvMemoryRead(
+-    unsigned int     startOffset,   // IN: read start
+-    unsigned int     size,          // IN: size of bytes to read
+-    void            *data           // OUT: data buffer
+-    );
+-
+-//*** _plat__NvIsDifferent()
+-// This function checks to see if the NV is different from the test value. This is
+-// so that NV will not be written if it has not changed.
+-// return value: int
+-//  TRUE(1)    the NV location is different from the test value
+-//  FALSE(0)   the NV location is the same as the test value
+-LIB_EXPORT int
+-_plat__NvIsDifferent(
+-    unsigned int     startOffset,   // IN: read start
+-    unsigned int     size,          // IN: size of bytes to read
+-    void            *data           // IN: data buffer
+-    );
+-
+-//***_plat__NvMemoryWrite()
+-// This function is used to update NV memory. The "write" is to a memory copy of
+-// NV. At the end of the current command, any changes are written to
+-// the actual NV memory.
+-// NOTE: A useful optimization would be for this code to compare the current
+-// contents of NV with the local copy and note the blocks that have changed. Then
+-// only write those blocks when _plat__NvCommit() is called.
+-LIB_EXPORT int
+-_plat__NvMemoryWrite(
+-    unsigned int     startOffset,   // IN: write start
+-    unsigned int     size,          // IN: size of bytes to write
+-    void            *data           // OUT: data buffer
+-    );
+-
+-//***_plat__NvMemoryClear()
+-// Function is used to set a range of NV memory bytes to an implementation-dependent
+-// value. The value represents the erase state of the memory.
+-LIB_EXPORT void
+-_plat__NvMemoryClear(
+-    unsigned int     start,         // IN: clear start
+-    unsigned int     size           // IN: number of bytes to clear
+-    );
+-
+-//***_plat__NvMemoryMove()
+-// Function: Move a chunk of NV memory from source to destination
+-//      This function should ensure that if there overlap, the original data is
+-//      copied before it is written
+-LIB_EXPORT void
+-_plat__NvMemoryMove(
+-    unsigned int     sourceOffset,  // IN: source offset
+-    unsigned int     destOffset,    // IN: destination offset
+-    unsigned int     size           // IN: size of data being moved
+-    );
+-
+-//***_plat__NvCommit()
+-// This function writes the local copy of NV to NV for permanent store. It will write
+-// NV_MEMORY_SIZE bytes to NV. If a file is use, the entire file is written.
+-// return type: int
+-//  0       NV write success
+-//  non-0   NV write fail
+-LIB_EXPORT int
+-_plat__NvCommit(
+-    void
+-    );
+-
+-//***_plat__SetNvAvail()
+-// Set the current NV state to available.  This function is for testing purpose
+-// only.  It is not part of the platform NV logic
+-LIB_EXPORT void
+-_plat__SetNvAvail(
+-    void
+-    );
+-
+-//***_plat__ClearNvAvail()
+-// Set the current NV state to unavailable.  This function is for testing purpose
+-// only.  It is not part of the platform NV logic
+-LIB_EXPORT void
+-_plat__ClearNvAvail(
+-    void
+-    );
+-
+-
+-//** From PowerPlat.c
+-
+-//***_plat__Signal_PowerOn()
+-// Signal platform power on
+-LIB_EXPORT int
+-_plat__Signal_PowerOn(
+-    void
+-    );
+-
+-//*** _plat__WasPowerLost()
+-// Test whether power was lost before a _TPM_Init.
+-//
+-// This function will clear the "hardware" indication of power loss before return.
+-// This means that there can only be one spot in the TPM code where this value
+-// gets read. This method is used here as it is the most difficult to manage in the
+-// TPM code and, if the hardware actually works this way, it is hard to make it
+-// look like anything else. So, the burden is placed on the TPM code rather than the
+-// platform code
+-// return type: int
+-//  TRUE(1)     power was lost
+-//  FALSE(0)    power was not lost
+-LIB_EXPORT int
+-_plat__WasPowerLost(
+-    void
+-    );
+-
+-//*** _plat_Signal_Reset()
+-// This a TPM reset without a power loss.
+-LIB_EXPORT int
+-_plat__Signal_Reset(
+-    void
+-    );
+-
+-//***_plat__Signal_PowerOff()
+-// Signal platform power off
+-LIB_EXPORT void
+-_plat__Signal_PowerOff(
+-    void
+-    );
+-
+-
+-//** From PPPlat.c
+-
+-//***_plat__PhysicalPresenceAsserted()
+-// Check if physical presence is signaled
+-// return type: int
+-//      TRUE(1)          if physical presence is signaled
+-//      FALSE(0)         if physical presence is not signaled
+-LIB_EXPORT int
+-_plat__PhysicalPresenceAsserted(
+-    void
+-    );
+-
+-//***_plat__Signal_PhysicalPresenceOn()
+-// Signal physical presence on
+-LIB_EXPORT void
+-_plat__Signal_PhysicalPresenceOn(
+-    void
+-    );
+-
+-//***_plat__Signal_PhysicalPresenceOff()
+-// Signal physical presence off
+-LIB_EXPORT void
+-_plat__Signal_PhysicalPresenceOff(
+-    void
+-    );
+-
+-
+-//*** _plat__ACT_UpdateCounter()
+-// This function is used to write the newValue for the counter. If an update is
+-// pending, then no update occurs and the function returns FALSE. If 'setSignaled'
+-// is TRUE, then the ACT signaled state is SET and if 'newValue' is 0, nothing
+-// is posted.
+-LIB_EXPORT int
+-_plat__ACT_UpdateCounter(
+-    uint32_t            act,        // IN: ACT to update
+-    uint32_t            newValue   // IN: the value to post
+-);
+-
+-//*** _plat__ACT_SetSignaled()
+-LIB_EXPORT void
+-_plat__ACT_SetSignaled(
+-    uint32_t            act,
+-    int                 on
+-);
+-
+-//***_plat__ACT_Initialize()
+-// This function initializes the ACT hardware and data structures
+-LIB_EXPORT int
+-_plat__ACT_Initialize(
+-    void
+-);
+-
+-//***_plat__ACT_EnableTicks()
+-// This enables and disables the processing of the once-per-second ticks. This should
+-// be turned off ('enable' = FALSE) by _TPM_Init and turned on ('enable' = TRUE) by
+-// TPM2_Startup() after all the initializations have completed.
+-LIB_EXPORT void
+-_plat__ACT_EnableTicks(
+-    int             enable
+-);
+-
+-//*** _plat__ACT_GetRemaining()
+-// This function returns the remaining time. If an update is pending, 'newValue' is
+-// returned. Otherwise, the current counter value is returned. Note that since the
+-// timers keep running, the returned value can get stale immediately. The actual count
+-// value will be no greater than the returned value.
+-LIB_EXPORT uint32_t
+-_plat__ACT_GetRemaining(
+-    uint32_t            act             //IN: the ACT selector
+-);
+-
+-//*** _plat__ACT_GetSignaled()
+-LIB_EXPORT int
+-_plat__ACT_GetSignaled(
+-    uint32_t            act         //IN: number of ACT to check
+-);
+-
+-//*** _plat__ACT_GetImplemented()
+-// This function tests to see if an ACT is implemented. It is a belt and suspenders
+-// function because the TPM should not be calling to manipulate an ACT that is not
+-// implemented. However, this could help the simulator code which doesn't necessarily
+-// know if an ACT is implemented or not.
+-LIB_EXPORT int
+-_plat__ACT_GetImplemented(
+-    uint32_t            act
+-);
+-
+-//** From RunCommand.c
+-
+-//***_plat__RunCommand()
+-// This version of RunCommand will set up a jum_buf and call ExecuteCommand(). If
+-// the command executes without failing, it will return and RunCommand will return.
+-// If there is a failure in the command, then _plat__Fail() is called and it will
+-// longjump back to RunCommand which will call ExecuteCommand again. However, this
+-// time, the TPM will be in failure mode so ExecuteCommand will simply build
+-// a failure response and return.
+-LIB_EXPORT void
+-_plat__RunCommand(
+-    uint32_t         requestSize,   // IN: command buffer size
+-    unsigned char   *request,       // IN: command buffer
+-    uint32_t        *responseSize,  // IN/OUT: response buffer size
+-    unsigned char   **response      // IN/OUT: response buffer
+-    );
+-
+-//***_plat__Fail()
+-// This is the platform depended failure exit for the TPM.
+-LIB_EXPORT NORETURN void
+-_plat__Fail(
+-    void
+-    );
+-
+-
+-//** From Unique.c
+-
+-//** _plat__GetUnique()
+-// This function is used to access the platform-specific unique value.
+-// This function places the unique value in the provided buffer ('b')
+-// and returns the number of bytes transferred. The function will not
+-// copy more data than 'bSize'.
+-// NOTE: If a platform unique value has unequal distribution of uniqueness
+-// and 'bSize' is smaller than the size of the unique value, the 'bSize'
+-// portion with the most uniqueness should be returned.
+-LIB_EXPORT uint32_t
+-_plat__GetUnique(
+-    uint32_t             which,         // authorities (0) or details
+-    uint32_t             bSize,         // size of the buffer
+-    unsigned char       *b              // output buffer
+-    );
+-
+-#endif  // _PLATFORM_FP_H_
+diff --git a/platform/include/TpmConfiguration/TpmBuildSwitches.h b/platform/include/TpmConfiguration/TpmBuildSwitches.h
+new file mode 100644
+index 0000000..ba7294c
+--- /dev/null
++++ b/platform/include/TpmConfiguration/TpmBuildSwitches.h
+@@ -0,0 +1,275 @@
++/* SPDX-License-Identifier: BSD-2-Clause */
++/*
++ * Copyright (c) 2026, Siemens AG
++ */
++// Copied from the TCG reference implementation, see
++// https://github.com/TrustedComputingGroup/TPM/tree/main/TPMCmd/TpmConfiguration/TpmConfiguration/TpmBuildSwitches.h, tag V184
++/*
++ * TCG Reference Implementation for TPM 2.0
++ * This code is informative.
++ *
++ * The copyright in this software is being made available under the BSD License,
++ * included below.
++ *
++ * Copyright 2010-2022 Microsoft Corporation
++ * Copyright 2022-2025 Trusted Computing Group and its contributors
++ *
++ * All rights reserved.
++ *
++ * BSD License
++ *
++ * Redistribution and use in source and binary forms, with or without
++ * modification, are permitted provided that the following conditions are met:
++ *
++ * Redistributions of source code must retain the above copyright notice, this
++ * list of conditions and the following disclaimer.
++ *
++ * Redistributions in binary form must reproduce the above copyright notice, this
++ * list of conditions and the following disclaimer in the documentation and/or
++ * other materials provided with the distribution.
++ *
++ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS ""AS IS""
++ * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
++ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
++ * DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
++ * FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
++ * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
++ * SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
++ * CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
++ * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
++ * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
++ */
++
++// This file contains the build switches. This contains switches for multiple
++// versions of the crypto-library so some may not apply to your environment.
++// Each switch has an accompanying description below.
++//
++// clang-format off
++#ifndef _TPM_BUILD_SWITCHES_H_
++#define _TPM_BUILD_SWITCHES_H_
++
++#if defined(YES) || defined(NO)
++#  error YES and NO should be defined in TpmBuildSwitches.h
++#endif
++#if defined(SET) || defined(CLEAR)
++#  error SET and CLEAR should be defined in TpmBuildSwitches.h
++#endif
++
++#define YES   1
++#define SET   1
++#define NO    0
++#define CLEAR 0
++
++// TRUE/FALSE may be coming from system headers, but if not, provide them.
++#ifndef TRUE
++#  define TRUE 1
++#endif
++#ifndef FALSE
++#  define FALSE 0
++#endif
++
++// Need an unambiguous definition for DEBUG. Do not change this
++#ifndef DEBUG
++#  ifdef NDEBUG
++#    define DEBUG NO
++#  else
++#    define DEBUG YES
++#  endif
++#elif(DEBUG != NO) && (DEBUG != YES)
++#  error DEBUG should be 0 or 1
++#endif
++
++////////////////////////////////////////////////////////////////
++// DEBUG OPTIONS
++////////////////////////////////////////////////////////////////
++
++// The SIMULATION switch allows certain other macros to be enabled. The things that
++// can be enabled in a simulation include key caching, reproducible "random"
++// sequences, instrumentation of the RSA key generation process, and certain other
++// debug code. SIMULATION Needs to be defined as either YES or NO. This grouping of
++// macros will make sure that it is set correctly. A simulated TPM would include a
++// Virtual TPM. The interfaces for a Virtual TPM should be modified from the standard
++// ones in the Simulator project.
++#define SIMULATION                  NO
++
++// ENABLE_TPM_DEBUG_PRINT enables arbitrary string printing.
++// enables the TPM_DEBUG_PRINT macro to route debugging strings
++// to the _plat_debug_out function
++#define ENABLE_TPM_DEBUG_PRINT      (YES * SIMULATION)
++
++//  ENABLE_TPM_DEBUG_TRACE enables code tracing macros - depends on TPM_DEBUG_PRINT
++#define ENABLE_TPM_DEBUG_TRACE      (NO  * ENABLE_TPM_DEBUG_PRINT)
++
++//  ENABLE_CRYPTO_DEBUG enables printing of actual crypto values. This is entirely insecure.
++#define ENABLE_CRYPTO_DEBUG         (YES * ENABLE_TPM_DEBUG_PRINT)
++
++// The CRYPTO_LIB_REPORTING switch allows the TPM to report its
++// crypto library implementation, e.g., at simulation startup.
++#define CRYPTO_LIB_REPORTING        YES
++
++// If doing debug, can set the DRBG to print out the intermediate test values.
++// Before enabling this, make sure that the dbgDumpMemBlock() function
++// has been added someplace (preferably, somewhere in CryptRand.c)
++#define DRBG_DEBUG_PRINT            (NO  * DEBUG)
++
++// This define is used to control the debug for the CertifyX509 command.
++#define CERTIFYX509_DEBUG           (NO * DEBUG)
++
++// This provides fixed seeding of the RNG when doing debug on a simulator. This
++// should allow consistent results on test runs as long as the input parameters
++// to the functions remains the same.
++#define USE_DEBUG_RNG               (NO  * DEBUG)
++
++////////////////////////////////////////////////////////////////
++// RSA DEBUG OPTIONS
++////////////////////////////////////////////////////////////////
++
++// Enable the instrumentation of the sieve process. This is used to tune the sieve
++// variables.
++#define RSA_INSTRUMENT              (NO  * DEBUG)
++
++// Enables use of the key cache. Default is YES
++#define USE_RSA_KEY_CACHE           (NO  * DEBUG)
++
++// Enables use of a file to store the key cache values so that the TPM will start
++// faster during debug. Default for this is YES
++#define USE_KEY_CACHE_FILE          (NO  * DEBUG)
++
++////////////////////////////////////////////////////////////////
++// TEST OPTIONS
++////////////////////////////////////////////////////////////////
++// The SIMULATION flag can enable test crypto behaviors and caching that
++// significantly change the behavior of the code.  This flag controls only the
++// g_forceFailureMode flag in the TPM library while leaving the rest of the TPM
++// behavior alone.  Useful for testing when the full set of options controlled by
++// SIMULATION may not be desired.
++#define ALLOW_FORCE_FAILURE_MODE    NO
++
++////////////////////////////////////////////////////////////////
++// Internal checks
++////////////////////////////////////////////////////////////////
++
++// Define this to run the function that checks the compatibility between the
++// chosen big number math library and the TPM code. Not all ports use this.
++// This can be set to NO once https://github.com/microsoft/ms-tpm-20-ref/commit/fcccc82514609f8f61bca69646695303b0197b64
++// has been applied to https://github.com/TrustedComputingGroup/TPM/blob/main/TPMCmd/tpm/cryptolibs/TpmBigNum/TpmBigNumThunks.c
++#define LIBRARY_COMPATIBILITY_CHECK YES
++
++// In some cases, the relationship between two values may be dependent on things that
++// change based on various selections like the chosen cryptographic libraries. It is
++// possible that these selections will result in incompatible settings. These are often
++// detectable by the compiler but it is not always possible to do the check in the
++// preprocessor code. For example, when the check requires use of 'sizeof'() then the
++// preprocessor can't do the comparison. For these cases, we include a special macro
++// that, depending on the compiler will generate a warning to indicate if the check
++// always passes or always fails because it involves fixed constants.
++//
++// In modern compilers this is now commonly known as a static_assert, but the precise
++// implementation varies by compiler. CompilerDependencies.h defines MUST_BE as a macro
++// that abstracts out the differences, and COMPILER_CHECKS can remove the checks where
++// the current compiler doesn't support it.  COMPILER_CHECKS should be enabled if the
++// compiler supports some form of static_assert.
++// See the CompilerDependencies_*.h files for specific implementations per compiler.
++#ifdef fTPMDebug
++#define COMPILER_CHECKS             YES
++#else
++#define COMPILER_CHECKS             NO
++#endif
++
++// Some of the values (such as sizes) are the result of different options set in
++// TpmProfile.h. The combination might not be consistent. A function is defined
++// (TpmSizeChecks()) that is used to verify the sizes at run time. To enable the
++// function, define this parameter.
++#ifdef fTPMDebug
++#define RUNTIME_SIZE_CHECKS         YES
++#else
++#define RUNTIME_SIZE_CHECKS         NO
++#endif
++
++////////////////////////////////////////////////////////////////
++// Compliance options
++////////////////////////////////////////////////////////////////
++
++// Enable extra behaviors to meet FIPS compliance requirements
++#define FIPS_COMPLIANT              YES
++
++// Indicates if the implementation is to compute the sizes of the proof and primary
++// seed size values based on the implemented algorithms.
++#define USE_SPEC_COMPLIANT_PROOFS   YES
++
++// Set this to allow compile to continue even though the chosen proof values
++// do not match the compliant values. This is written so that someone would
++// have to proactively ignore errors.
++#define SKIP_PROOF_ERRORS           NO
++
++////////////////////////////////////////////////////////////////
++// Implementation alternatives - don't  change external behavior
++////////////////////////////////////////////////////////////////
++// does the target system have longjmp support, AND we want to use it?
++#define LONGJMP_SUPPORTED           NO
++
++// Define TABLE_DRIVEN_DISPATCH to use tables rather than case statements
++// for command dispatch and handle unmarshaling
++#define TABLE_DRIVEN_DISPATCH       YES
++
++// This define is used to enable the new table-driven marshaling code.
++#define TABLE_DRIVEN_MARSHAL        NO
++
++// This switch allows use of #defines in place of pass-through marshaling or
++// unmarshaling code. A pass-through function just calls another function to do
++// the required function and does no parameter checking of its own. The
++// table-driven dispatcher calls directly to the lowest level
++// marshaling/unmarshaling code and by-passes any pass-through functions.
++#define USE_MARSHALING_DEFINES      YES
++
++// Switch added to support packed lists that leave out space associated with
++// unimplemented commands. Comment this out to use linear lists.
++// Note: if vendor specific commands are present, the associated list is always
++// in compressed form.
++#define COMPRESSED_LISTS            YES
++
++// This define is used to eliminate the use of bit-fields. It can be enabled for big-
++// or little-endian machines. For big-endian architectures that numbers bits in
++// registers from left to right (MSb0) this must be enabled. Little-endian machines
++// number from right to left with the least significant bit having assigned a bit
++// number of 0. These are LSb0 machines (they are also little-endian so they are also
++// least-significant byte 0 (LSB0) machines. Big-endian (MSB0) machines may number in
++// either direction (MSb0 or LSb0). For an MSB0+MSb0 machine this value is required to
++// be 'NO'
++#define USE_BIT_FIELD_STRUCTURES    NO
++
++// Enable the generation of RSA primes using a sieve.
++#define RSA_KEY_SIEVE               YES
++
++////////////////////////////////////////////////////////////////
++// Implementation alternatives - changes external behavior
++////////////////////////////////////////////////////////////////
++
++// This switch enables the RNG state save and restore
++#define _DRBG_STATE_SAVE            YES
++
++// Definition to allow alternate behavior for non-orderly startup. If there is a
++// chance that the TPM could not update 'failedTries'
++#define USE_DA_USED                 YES
++
++// This switch is used to enable the self-test capability in AlgorithmTests.c
++#define ENABLE_SELF_TESTS           YES
++
++// This switch indicates where clock epoch value should be stored. If this value
++// defined, then it is assumed that the timer will change at any time so the
++// nonce should be a random number kept in RAM. When it is not defined, then the
++// timer only stops during power outages.
++#define CLOCK_STOPS                 NO
++
++// Indicate if the implementation is going to give lockout time credit for time up to
++// the last orderly shutdown.
++#define ACCUMULATE_SELF_HEAL_TIMER  YES
++
++// If an assertion event is not going to produce any trace information (function and
++// line number) then make FAIL_TRACE == NO
++#define FAIL_TRACE                  YES
++
++// TODO_RENAME_INC_FOLDER: public refers to the TPM_CoreLib public headers
++#include <tpm_public/CompilerDependencies.h>
++
++#endif  // _TPM_BUILD_SWITCHES_H_
+diff --git a/platform/include/TpmConfiguration/TpmProfile_CommandList.h b/platform/include/TpmConfiguration/TpmProfile_CommandList.h
+new file mode 100644
+index 0000000..7012351
+--- /dev/null
++++ b/platform/include/TpmConfiguration/TpmProfile_CommandList.h
+@@ -0,0 +1,213 @@
++/* SPDX-License-Identifier: BSD-2-Clause */
++/*
++ * Copyright (c) 2026, Siemens AG
++ */
++// Copied from the TCG reference implementation, see
++// https://github.com/TrustedComputingGroup/TPM/tree/main/TPMCmd/TpmConfiguration/TpmConfiguration/TpmBuildSwitches.h, tag V184
++/*
++ * TCG Reference Implementation for TPM 2.0
++ * This code is informative.
++ *
++ * The copyright in this software is being made available under the BSD License,
++ * included below.
++ *
++ * Copyright 2010-2022 Microsoft Corporation
++ * Copyright 2022-2025 Trusted Computing Group and its contributors
++ *
++ * All rights reserved.
++ *
++ * BSD License
++ *
++ * Redistribution and use in source and binary forms, with or without
++ * modification, are permitted provided that the following conditions are met:
++ *
++ * Redistributions of source code must retain the above copyright notice, this
++ * list of conditions and the following disclaimer.
++ *
++ * Redistributions in binary form must reproduce the above copyright notice, this
++ * list of conditions and the following disclaimer in the documentation and/or
++ * other materials provided with the distribution.
++ *
++ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS ""AS IS""
++ * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
++ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
++ * DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
++ * FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
++ * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
++ * SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
++ * CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
++ * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
++ * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
++ */
++
++// this file defines the desired command list that should be built into the
++// Tpm Core Lib.
++
++#ifndef _TPM_PROFILE_COMMAND_LIST_H_
++#define _TPM_PROFILE_COMMAND_LIST_H_
++
++#if(YES != 1 || NO != 0)
++#  error YES and NO must be correctly set before including TpmProfile_CommandList.h
++#endif
++#if defined(CC_YES) || defined(CC_NO)
++#  error CC_YES and CC_NO should be defined by the command line file, not before
++#endif
++
++// Change these definitions to turn all commands ON or OFF. That is, to turn all
++// commands on, set CC_NO to YES. This is intended as a debug feature.
++#define CC_YES YES
++#define CC_NO  NO
++
++// do not format automatically - the comments confuse clang-format.
++// clang-format off
++
++// Defines for Implemented Commands
++
++// Commands that are defined in the spec, but not implemented for various
++// reasons:
++
++// The TPM reference implementation does not implement attached-component
++// features, and the Compliance test suite has no test cases.
++#define CC_AC_GetCapability           CC_NO
++#define CC_AC_Send                    CC_NO
++
++// The TPM reference implementation does not implement firmware upgrade.
++#define CC_FieldUpgradeData           CC_NO
++#define CC_FieldUpgradeStart          CC_NO
++#define CC_FirmwareRead               CC_NO
++
++// A prototype of CertifyX509 is provided here for informative purposes only.
++// While all of the TPM reference implementation is provided "AS IS" without any
++// warranty, the current design and implementation of CertifyX509 are considered
++// to be especially unsuitable for product use.
++#define CC_CertifyX509               CC_YES
++
++// Normal commands:
++
++#define CC_ACT_SetTimeout             (CC_YES && ACT_SUPPORT)
++#define CC_ActivateCredential         CC_YES
++#define CC_Certify                    CC_YES
++#define CC_CertifyCreation            CC_YES
++#define CC_ChangeEPS                  CC_YES
++#define CC_ChangePPS                  CC_YES
++#define CC_Clear                      CC_YES
++#define CC_ClearControl               CC_YES
++#define CC_ClockRateAdjust            CC_YES
++#define CC_ClockSet                   CC_YES
++#define CC_Commit                     (CC_YES && ALG_ECC)
++#define CC_ContextLoad                CC_YES
++#define CC_ContextSave                CC_YES
++#define CC_Create                     CC_YES
++#define CC_CreateLoaded               CC_YES
++#define CC_CreatePrimary              CC_YES
++#define CC_DictionaryAttackLockReset  CC_YES
++#define CC_DictionaryAttackParameters CC_YES
++#define CC_Duplicate                  CC_YES
++#define CC_ECC_Decrypt                (CC_YES && ALG_ECC)
++#define CC_ECC_Encrypt                (CC_YES && ALG_ECC)
++#define CC_ECC_Parameters             (CC_YES && ALG_ECC)
++#define CC_ECDH_KeyGen                (CC_YES && ALG_ECC)
++#define CC_ECDH_ZGen                  (CC_YES && ALG_ECC)
++#define CC_EC_Ephemeral               (CC_YES && ALG_ECC)
++#define CC_EncryptDecrypt             CC_YES
++#define CC_EncryptDecrypt2            CC_YES
++#define CC_EventSequenceComplete      CC_YES
++#define CC_EvictControl               CC_YES
++#define CC_FlushContext               CC_YES
++#define CC_GetCapability              CC_YES
++#define CC_GetCommandAuditDigest      CC_YES
++#define CC_GetRandom                  CC_YES
++#define CC_GetSessionAuditDigest      CC_YES
++#define CC_GetTestResult              CC_YES
++#define CC_GetTime                    CC_YES
++#define CC_HMAC                       (CC_YES && !ALG_CMAC)
++#define CC_HMAC_Start                 (CC_YES && !ALG_CMAC)
++#define CC_Hash                       CC_YES
++#define CC_HashSequenceStart          CC_YES
++#define CC_HierarchyChangeAuth        CC_YES
++#define CC_HierarchyControl           CC_YES
++#define CC_Import                     CC_YES
++#define CC_IncrementalSelfTest        CC_YES
++#define CC_Load                       CC_YES
++#define CC_LoadExternal               CC_YES
++#define CC_MAC                        (CC_YES && ALG_CMAC)
++#define CC_MAC_Start                  (CC_YES && ALG_CMAC)
++#define CC_MakeCredential             CC_YES
++#define CC_NV_Certify                 CC_YES
++#define CC_NV_ChangeAuth              CC_YES
++#define CC_NV_DefineSpace             CC_YES
++#define CC_NV_Extend                  CC_YES
++#define CC_NV_GlobalWriteLock         CC_YES
++#define CC_NV_Increment               CC_YES
++#define CC_NV_Read                    CC_YES
++#define CC_NV_ReadLock                CC_YES
++#define CC_NV_ReadPublic              CC_YES
++#define CC_NV_SetBits                 CC_YES
++#define CC_NV_UndefineSpace           CC_YES
++#define CC_NV_UndefineSpaceSpecial    CC_YES
++#define CC_NV_Write                   CC_YES
++#define CC_NV_WriteLock               CC_YES
++#define CC_ObjectChangeAuth           CC_YES
++#define CC_PCR_Allocate               CC_YES
++#define CC_PCR_Event                  CC_YES
++#define CC_PCR_Extend                 CC_YES
++#define CC_PCR_Read                   CC_YES
++#define CC_PCR_Reset                  CC_YES
++#define CC_PCR_SetAuthPolicy          CC_YES
++#define CC_PCR_SetAuthValue           CC_YES
++#define CC_PP_Commands                CC_YES
++#define CC_PolicyAuthValue            CC_YES
++#define CC_PolicyAuthorize            CC_YES
++#define CC_PolicyAuthorizeNV          CC_YES
++#define CC_PolicyCapability           CC_YES
++#define CC_PolicyCommandCode          CC_YES
++#define CC_PolicyCounterTimer         CC_YES
++#define CC_PolicyCpHash               CC_YES
++#define CC_PolicyDuplicationSelect    CC_YES
++#define CC_PolicyGetDigest            CC_YES
++#define CC_PolicyLocality             CC_YES
++#define CC_PolicyNV                   CC_YES
++#define CC_PolicyNameHash             CC_YES
++#define CC_PolicyNvWritten            CC_YES
++#define CC_PolicyOR                   CC_YES
++#define CC_PolicyPCR                  CC_YES
++#define CC_PolicyPassword             CC_YES
++#define CC_PolicyParameters           CC_YES
++#define CC_PolicyPhysicalPresence     CC_YES
++#define CC_PolicyRestart              CC_YES
++#define CC_PolicySecret               CC_YES
++#define CC_PolicySigned               CC_YES
++#define CC_PolicyTemplate             CC_YES
++#define CC_PolicyTicket               CC_YES
++#define CC_Policy_AC_SendSelect       CC_YES
++#define CC_Quote                      CC_YES
++#define CC_RSA_Decrypt                (CC_YES && ALG_RSA)
++#define CC_RSA_Encrypt                (CC_YES && ALG_RSA)
++#define CC_ReadClock                  CC_YES
++#define CC_ReadPublic                 CC_YES
++#define CC_Rewrap                     CC_YES
++#define CC_SelfTest                   CC_YES
++#define CC_SequenceComplete           CC_YES
++#define CC_SequenceUpdate             CC_YES
++#define CC_SetAlgorithmSet            CC_YES
++#define CC_SetCommandCodeAuditStatus  CC_YES
++#define CC_SetPrimaryPolicy           CC_YES
++#define CC_Shutdown                   CC_YES
++#define CC_Sign                       CC_YES
++#define CC_StartAuthSession           CC_YES
++#define CC_Startup                    CC_YES
++#define CC_StirRandom                 CC_YES
++#define CC_TestParms                  CC_YES
++#define CC_Unseal                     CC_YES
++#define CC_Vendor_TCG_Test            CC_YES
++#define CC_VerifySignature            CC_YES
++#define CC_ZGen_2Phase                (CC_YES && ALG_ECC)
++#define CC_NV_DefineSpace2            CC_YES
++#define CC_NV_ReadPublic2             CC_YES
++#define CC_SetCapability              CC_NO
++#define CC_ReadOnlyControl            CC_NO
++#define CC_PolicyTransportSPDM        CC_NO
++
++#define VENDOR_COMMAND_ARRAY_COUNT (CC_Vendor_TCG_Test)
++
++#endif  // _TPM_PROFILE_COMMAND_LIST_H_
+diff --git a/platform/include/TpmConfiguration/TpmProfile_Common.h b/platform/include/TpmConfiguration/TpmProfile_Common.h
+new file mode 100644
+index 0000000..0ed6517
+--- /dev/null
++++ b/platform/include/TpmConfiguration/TpmProfile_Common.h
+@@ -0,0 +1,278 @@
++/* SPDX-License-Identifier: BSD-2-Clause */
++/*
++ * Copyright (c) 2026, Siemens AG
++ */
++// Copied from the TCG reference implementation, see
++// https://github.com/TrustedComputingGroup/TPM/tree/main/TPMCmd/TpmConfiguration/TpmConfiguration/TpmBuildSwitches.h, tag V184
++/*
++ * TCG Reference Implementation for TPM 2.0
++ * This code is informative.
++ *
++ * The copyright in this software is being made available under the BSD License,
++ * included below.
++ *
++ * Copyright 2010-2022 Microsoft Corporation
++ * Copyright 2022-2025 Trusted Computing Group and its contributors
++ *
++ * All rights reserved.
++ *
++ * BSD License
++ *
++ * Redistribution and use in source and binary forms, with or without
++ * modification, are permitted provided that the following conditions are met:
++ *
++ * Redistributions of source code must retain the above copyright notice, this
++ * list of conditions and the following disclaimer.
++ *
++ * Redistributions in binary form must reproduce the above copyright notice, this
++ * list of conditions and the following disclaimer in the documentation and/or
++ * other materials provided with the distribution.
++ *
++ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS ""AS IS""
++ * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
++ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
++ * DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
++ * FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
++ * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
++ * SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
++ * CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
++ * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
++ * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
++ */
++
++// clang-format off
++// clang-format off to preserve define alignment breaking sections.
++
++// this file defines the common optional selections for the TPM library build
++// Requires basic YES/NO defines are already set (by TpmBuildSwitches.h)
++// Less frequently changed items are in other TpmProfile Headers.
++
++#ifndef _TPM_PROFILE_COMMON_H_
++#define _TPM_PROFILE_COMMON_H_
++// YES & NO defined by TpmBuildSwitches.h
++#if (YES != 1 || NO != 0)
++#  error YES or NO incorrectly set
++#endif
++#if defined(ALG_YES) || defined(ALG_NO)
++#  error ALG_YES and ALG_NO should only be defined by the TpmProfile_Common.h file
++#endif
++
++// Change these definitions to turn all algorithms ON or OFF. That is, to turn
++// all algorithms on, set ALG_NO to YES. This is intended as a debug feature.
++#define  ALG_YES                    YES
++#define  ALG_NO                     NO
++
++// Defines according to the processor being built for.
++// Are building for a BIG_ENDIAN processor?
++#define  BIG_ENDIAN_TPM             NO
++#define  LITTLE_ENDIAN_TPM          !BIG_ENDIAN_TPM
++// Does the processor put the most-significant bit at bit position 0?
++#define MOST_SIGNIFICANT_BIT_0      NO
++#define LEAST_SIGNIFICANT_BIT_0     !MOST_SIGNIFICANT_BIT_0
++// Does processor support Auto align?
++#define  AUTO_ALIGN                 NO
++
++//***********************************************
++// Defines for Symmetric Algorithms
++//***********************************************
++
++#define ALG_AES                     ALG_YES
++
++#define     AES_128                     (YES * ALG_AES)
++#define     AES_192                     (NO  * ALG_AES)
++#define     AES_256                     (YES * ALG_AES)
++
++#define ALG_SM4                     ALG_YES
++
++#define     SM4_128                     (NO  * ALG_SM4)
++
++#define ALG_CAMELLIA                ALG_NO
++
++#define     CAMELLIA_128                (YES * ALG_CAMELLIA)
++#define     CAMELLIA_192                (NO  * ALG_CAMELLIA)
++#define     CAMELLIA_256                (YES * ALG_CAMELLIA)
++
++// must be yes if any above are yes.
++#define ALG_SYMCIPHER               (ALG_AES || ALG_SM4 || ALG_CAMELLIA)
++#define ALG_CMAC                    (YES * ALG_SYMCIPHER)
++
++// block cipher modes
++#define ALG_CTR                     ALG_YES
++#define ALG_OFB                     ALG_YES
++#define ALG_CBC                     ALG_YES
++#define ALG_CFB                     ALG_YES
++#define ALG_ECB                     ALG_YES
++
++//***********************************************
++// Defines for RSA Asymmetric Algorithms
++//***********************************************
++#define ALG_RSA                     ALG_YES
++#define     RSA_1024                        (YES * ALG_RSA)
++#define     RSA_2048                        (YES * ALG_RSA)
++#define     RSA_3072                        (YES * ALG_RSA)
++#define     RSA_4096                        (YES * ALG_RSA)
++#define     RSA_16384                       (NO  * ALG_RSA)
++
++#define     ALG_RSASSA                      (YES * ALG_RSA)
++#define     ALG_RSAES                       (YES * ALG_RSA)
++#define     ALG_RSAPSS                      (YES * ALG_RSA)
++#define     ALG_OAEP                        (YES * ALG_RSA)
++
++// RSA Implementation Styles
++// use Chinese Remainder Theorem (5 prime) format for private key ?
++#define CRT_FORMAT_RSA                  YES
++#define RSA_DEFAULT_PUBLIC_EXPONENT     0x00010001
++
++//***********************************************
++// Defines for ECC Asymmetric Algorithms
++//***********************************************
++#define ALG_ECC                     ALG_YES
++#define     ALG_ECDH                        (YES * ALG_ECC)
++#define     ALG_ECDSA                       (YES * ALG_ECC)
++#define     ALG_ECDAA                       (YES * ALG_ECC)
++#define     ALG_SM2                         (YES * ALG_ECC)
++#define     ALG_ECSCHNORR                   (YES * ALG_ECC)
++#define     ALG_ECMQV                       (YES * ALG_ECC)
++#define     ALG_KDF1_SP800_56A              (YES * ALG_ECC)
++#define     ALG_EDDSA                       (NO  * ALG_ECC)
++#define     ALG_EDDSA_PH                    (NO  * ALG_ECC)
++
++#define     ECC_NIST_P192                   (YES * ALG_ECC)
++#define     ECC_NIST_P224                   (YES * ALG_ECC)
++#define     ECC_NIST_P256                   (YES * ALG_ECC)
++#define     ECC_NIST_P384                   (YES * ALG_ECC)
++#define     ECC_NIST_P521                   (YES * ALG_ECC)
++#define     ECC_BN_P256                     (YES * ALG_ECC)
++#define     ECC_BN_P638                     (YES * ALG_ECC)
++#define     ECC_SM2_P256                    (YES * ALG_ECC)
++
++#define     ECC_BP_P256_R1                  (NO * ALG_ECC)
++#define     ECC_BP_P384_R1                  (NO * ALG_ECC)
++#define     ECC_BP_P512_R1                  (NO * ALG_ECC)
++#define     ECC_CURVE_25519                 (NO * ALG_ECC)
++#define     ECC_CURVE_448                   (NO * ALG_ECC)
++
++//***********************************************
++// Defines for Hash/XOF Algorithms
++//***********************************************
++#define ALG_MGF1                            ALG_YES
++#define ALG_SHA1                            ALG_YES
++#define ALG_SHA256                          ALG_YES
++#define ALG_SHA256_192                      ALG_NO
++#define ALG_SHA384                          ALG_YES
++#define ALG_SHA512                          ALG_NO
++
++#define ALG_SHA3_256                        ALG_NO
++#define ALG_SHA3_384                        ALG_NO
++#define ALG_SHA3_512                        ALG_NO
++
++#define ALG_SM3_256                         ALG_NO
++
++#define ALG_SHAKE256_192                    ALG_NO
++#define ALG_SHAKE256_256                    ALG_NO
++#define ALG_SHAKE256_512                    ALG_NO
++
++//***********************************************
++// Defines for Stateful Signature Algorithms
++//***********************************************
++#define ALG_LMS                             ALG_NO
++#define ALG_XMSS                            ALG_NO
++
++//***********************************************
++// Defines for Keyed Hashes
++//***********************************************
++#define ALG_KEYEDHASH                       ALG_YES
++#define ALG_HMAC                            ALG_YES
++
++//***********************************************
++// Defines for KDFs
++//***********************************************
++#define ALG_KDF2                            ALG_NO
++#define ALG_KDF1_SP800_108                  ALG_YES
++
++//***********************************************
++// Defines for Obscuration/MISC/compatibility
++//***********************************************
++#define ALG_XOR                             ALG_YES
++
++//***********************************************
++// Defines controlling ACT
++//***********************************************
++#define ACT_SUPPORT                         YES
++#define RH_ACT_0                                (YES * ACT_SUPPORT)
++#define RH_ACT_1                                ( NO * ACT_SUPPORT)
++#define RH_ACT_2                                ( NO * ACT_SUPPORT)
++#define RH_ACT_3                                ( NO * ACT_SUPPORT)
++#define RH_ACT_4                                ( NO * ACT_SUPPORT)
++#define RH_ACT_5                                ( NO * ACT_SUPPORT)
++#define RH_ACT_6                                ( NO * ACT_SUPPORT)
++#define RH_ACT_7                                ( NO * ACT_SUPPORT)
++#define RH_ACT_8                                ( NO * ACT_SUPPORT)
++#define RH_ACT_9                                ( NO * ACT_SUPPORT)
++#define RH_ACT_A                                (YES * ACT_SUPPORT)
++#define RH_ACT_B                                ( NO * ACT_SUPPORT)
++#define RH_ACT_C                                ( NO * ACT_SUPPORT)
++#define RH_ACT_D                                ( NO * ACT_SUPPORT)
++#define RH_ACT_E                                ( NO * ACT_SUPPORT)
++#define RH_ACT_F                                ( NO * ACT_SUPPORT)
++
++// number of vendor properties, must currently be 1.
++#define MAX_VENDOR_PROPERTY                 (1)
++
++//***********************************************
++// Enable VENDOR_PERMANENT_AUTH_HANDLE?
++//***********************************************
++#define VENDOR_PERMANENT_AUTH_ENABLED       NO
++// if YES, this must be valid per Part2 (TPM_RH_AUTH_00 - TPM_RH_AUTH_FF)
++// if NO, this must be #undef
++#undef  VENDOR_PERMANENT_AUTH_HANDLE
++
++//***********************************************
++// Defines controlling optional implementation
++//***********************************************
++#define FIELD_UPGRADE_IMPLEMENTED           NO
++
++//***********************************************
++// Buffer Sizes based on implementation
++//***********************************************
++// When using PC CRB, the page size for both commands and
++// control registers is 4k.  The command buffer starts at
++// offset 0x80, so the net size available is:
++// #define  MAX_COMMAND_SIZE               (4096-0x80)
++// #define  MAX_RESPONSE_SIZE              (4096-0x80)
++#define  MAX_COMMAND_SIZE               (4096)
++#define  MAX_RESPONSE_SIZE              (4096)
++
++//***********************************************
++// Vendor Info
++//***********************************************
++// max buffer for vendor commands
++// Max data buffer leaving space for TPM2B size prefix
++#define VENDOR_COMMAND_COUNT          0
++#define MAX_VENDOR_BUFFER_SIZE         (MAX_RESPONSE_SIZE-2)
++#define PRIVATE_VENDOR_SPECIFIC_BYTES RSA_PRIVATE_SIZE
++
++//***********************************************
++// Defines controlling Firmware- and SVN-limited objects
++//***********************************************
++#define FW_LIMITED_SUPPORT                    NO
++#define SVN_LIMITED_SUPPORT                   NO
++
++//***********************************************
++// Defines controlling External NV
++//***********************************************
++// This is a software reference implementation of the TPM: there is no
++// "external NV" as such. This #define configures the TPM to implement
++// "external NV" that is stored in the same place as "internal NV."
++// NOTE: enabling this doesn't necessarily mean that the expanded
++// (external-NV-specific) attributes are supported.
++#define EXTERNAL_NV                           YES
++
++//***********************************************
++// Defines controlling secure channel functionality
++//***********************************************
++// This flag enables support for PolicyTransportSPDM.
++// See CC_PolicyTransportSPDM.
++#define SEC_CHANNEL_SUPPORT                   NO
++
++#endif // _TPM_PROFILE_COMMON_H_
+diff --git a/reference/include/VendorString.h b/reference/include/VendorString.h
+deleted file mode 100644
+index b2b798e..0000000
+--- a/reference/include/VendorString.h
++++ /dev/null
+@@ -1,93 +0,0 @@
+-/* Microsoft Reference Implementation for TPM 2.0
+- *
+- *  The copyright in this software is being made available under the BSD License,
+- *  included below. This software may be subject to other third party and
+- *  contributor rights, including patent rights, and no such rights are granted
+- *  under this license.
+- *
+- *  Copyright (c) Microsoft Corporation
+- *
+- *  All rights reserved.
+- *
+- *  BSD License
+- *
+- *  Redistribution and use in source and binary forms, with or without modification,
+- *  are permitted provided that the following conditions are met:
+- *
+- *  Redistributions of source code must retain the above copyright notice, this list
+- *  of conditions and the following disclaimer.
+- *
+- *  Redistributions in binary form must reproduce the above copyright notice, this
+- *  list of conditions and the following disclaimer in the documentation and/or
+- *  other materials provided with the distribution.
+- *
+- *  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS ""AS IS""
+- *  AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+- *  IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+- *  DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR
+- *  ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+- *  (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+- *  LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON
+- *  ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+- *  (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+- *  SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+- */
+-
+-#ifndef     _VENDOR_STRING_H
+-#define     _VENDOR_STRING_H
+-
+-// Define up to 4-byte values for MANUFACTURER.  This value defines the response
+-// for TPM_PT_MANUFACTURER in TPM2_GetCapability.
+-// The following line should be un-commented and a vendor specific string
+-// should be provided here.
+-#define    MANUFACTURER    "MSFT"
+-
+-// The following #if macro may be deleted after a proper MANUFACTURER is provided.
+-#ifndef MANUFACTURER
+-#error MANUFACTURER is not provided. \
+-Please modify include\VendorString.h to provide a specific \
+-manufacturer name.
+-#endif
+-
+-// Define up to 4, 4-byte values. The values must each be 4 bytes long and the last
+-// value used may contain trailing zeros.
+-// These values define the response for TPM_PT_VENDOR_STRING_(1-4)
+-// in TPM2_GetCapability.
+-// The following line should be un-commented and a vendor specific string
+-// should be provided here.
+-// The vendor strings 2-4 may also be defined as appropriately.
+-#define       VENDOR_STRING_1       "SSE "
+-#define       VENDOR_STRING_2       "fTPM"
+-//#define       VENDOR_STRING_3
+-//#define       VENDOR_STRING_4
+-
+-// The following #if macro may be deleted after a proper VENDOR_STRING_1
+-// is provided.
+-#ifndef VENDOR_STRING_1
+-#error VENDOR_STRING_1 is not provided. \
+-Please modify include\VendorString.h to provide a vendor specific \
+-string.
+-#endif
+-
+-// the more significant 32-bits of a vendor-specific value
+-// indicating the version of the firmware
+-// The following line should be un-commented and a vendor-specific firmware V1
+-// should be provided here.
+-// The FIRMWARE_V2 may also be defined as appropriate.
+-
+-//Date of last update: (0xYYYMMDD)
+-#define   FIRMWARE_V1         (0x20180710)
+-// the less significant 32-bits of a vendor-specific value
+-// indicating the version of the firmware
+-
+-//Time of last update: (0x00HHMMSS)
+-#define   FIRMWARE_V2         (0x00105300)
+-
+-// The following #if macro may be deleted after a proper FIRMWARE_V1 is provided.
+-#ifndef FIRMWARE_V1
+-#error  FIRMWARE_V1 is not provided. \
+-Please modify include\VendorString.h to provide a vendor-specific firmware \
+-version
+-#endif
+-
+-#endif
+diff --git a/sub.mk b/sub.mk
+index 22bd860..2114f9f 100644
+--- a/sub.mk
++++ b/sub.mk
+@@ -1,3 +1,9 @@
++# SPDX-License-Identifier: BSD-2-Clause
++#
++# Copyright (c) 2024, Linaro Limited
++# Copyright (c) 2026, Siemens AG
++#
++
+ CFG_FTPM_EMULATE_PPI ?= n
+ CFG_FTPM_TA_TEE_STORAGE_ID ?= TEE_STORAGE_PRIVATE
+ 
+@@ -9,32 +15,31 @@ CFG_FTPM_TA_TEE_STORAGE_ID ?= TEE_STORAGE_PRIVATE
+ # files here will make sure the correct files are used first.
+ #
+ 
+-cppflags-y += -include reference/include/VendorString.h
+-cppflags-y += -include platform/include/Platform.h
++#cppflags-y += -include platform/include/Platform.h
+ 
+-cppflags-y += -DHASH_LIB=MBEDTLS -DSYM_LIB=TEE -DMATH_LIB=TEE
+-cppflags-y += -DALG_CAMELLIA=ALG_NO -DALG_KDF2=ALG_NO
+-cppflags-y += -DALG_SM3_256=NO -DALG_SM4=YES
+-cppflags-y += -D_ARM_ -DFAIL_TRACE=NO
+-cppflags-y += -DGCC -DSIMULATION=NO -DVTPM
+-cppflags-y += -DRSA_INSTRUMENT=NO
+-cppflags-y += -DCERTIFYX509_DEBUG=NO
++cppflags-y += -DHASH_LIB=MBEDTLS -DSYM_LIB=TEE -DMATH_LIB=TpmBigNum -DBN_MATH_LIB=TEE
++cppflags-y += -D_ARM_
++cppflags-y += -DGCC -DVTPM
+ ifeq ($(CFG_TA_DEBUG),y)
+-cppflags-y += -DCOMPILER_CHECKS=YES -DfTPMDebug -DRUNTIME_SIZE_CHECKS
+-cppflags-y += -DLIBRARY_COMPATIBILITY_CHECK=NO
++cppflags-y += -DfTPMDebug
+ cppflags-y += -DTRACE_LEVEL=$(CFG_TEE_TA_LOG_LEVEL)
+-else
+-cppflags-y += -DCOMPILER_CHECKS=NO -DRUNTIME_SIZE_CHECKS=NO
+-cppflags-y += -DLIBRARY_COMPATIBILITY_CHECK=NO
+ endif
+ 
++# too many warnings with ms-tpm-20-ref
++cppflags-y += -Wno-strict-aliasing
++
+ global-incdirs-y += include
+ global-incdirs-y += reference/include
+ global-incdirs-y += platform/include
+ 
+ global-incdirs_ext-y += $(CFG_MS_TPM_20_REF)/TPMCmd/tpm/include
+-global-incdirs_ext-y += $(CFG_MS_TPM_20_REF)/TPMCmd/tpm/include/prototypes
++global-incdirs_ext-y += $(CFG_MS_TPM_20_REF)/TPMCmd/tpm/include/tpm_public
++global-incdirs_ext-y += $(CFG_MS_TPM_20_REF)/TPMCmd/tpm/include/private
++global-incdirs_ext-y += $(CFG_MS_TPM_20_REF)/TPMCmd/tpm/include/private/prototypes
++global-incdirs_ext-y += $(CFG_MS_TPM_20_REF)/TPMCmd/tpm/cryptolibs/common/include
+ global-incdirs_ext-y += $(CFG_MS_TPM_20_REF)/TPMCmd/Platform/include
++global-incdirs_ext-y += $(CFG_MS_TPM_20_REF)/TPMCmd/TpmConfiguration
++global-incdirs_ext-y += $(CFG_MS_TPM_20_REF)/TPMCmd/tpm/cryptolibs/TpmBigNum/include/
+ 
+ cflags-y += -fno-strict-aliasing
+ cflags-y += -Wno-cast-align
+@@ -65,8 +70,6 @@ cflags-fTPM.c-y += -Wno-unused-variable
+ cflags-fTPM.c-y += -Wno-incompatible-pointer-types
+ cflags-fTPM.c-y += -Wno-pointer-arith
+ cflags-fTPM.c-y += -Wno-format-truncation
+-cflags-platform/EPS.c-y += -Wno-nested-externs
+-cflags-platform/EPS.c-y += -Wno-implicit-function-declaration
+ cflags-platform/AdminPPI.c-y += -Wno-missing-declarations
+ cflags-platform/AdminPPI.c-y += -Wno-missing-prototypes
+ cflags-platform/AdminPPI.c-y += -Wno-unknown-pragmas
+@@ -85,17 +88,21 @@ srcs-y += platform/AdminPPI.c
+ srcs-y += platform/Cancel.c
+ srcs-y += platform/Clock.c
+ srcs-y += platform/Entropy.c
++srcs-y += platform/ExtraData.c
+ srcs-y += platform/LocalityPlat.c
+ srcs-y += platform/NvAdmin.c
+ srcs-y += platform/NVMem.c
+ srcs-y += platform/PowerPlat.c
+ srcs-y += platform/PlatformData.c
++srcs-y += platform/PlatformPcr.c
+ srcs-y += platform/PPPlat.c
+ srcs-y += platform/RunCommand.c
+-srcs-y += platform/Unique.c
+-srcs-y += platform/EPS.c
+ srcs-y += platform/PlatformACT.c
+ srcs-y += platform/fTPM_helpers.c
++srcs-y += platform/VendorInfo.c
++srcs-y += platform/Failure.c
++srcs-y += platform/Init.c
++srcs-y += platform/SelfTest.c
+ 
+ srcs-y += fTPM.c
+ 
+@@ -109,202 +116,215 @@ cppflags-y += -DMEASURED_BOOT
+ endif
+ 
+ 
+-srcs-y += tee/TpmToTEEMath.c
+-srcs-y += tee/TpmToTEESupport.c
++srcs-y += tee/BnToTEEMath.c
++srcs-y += tee/BnToTEESupport.c
+ srcs-y += tee/TpmToTEESym.c
+ 
+-srcs_ext_base-y := $(CFG_MS_TPM_20_REF)/TPMCmd/tpm/src/
+-srcs_ext-y += X509/X509_ECC.c
+-srcs_ext-y += X509/X509_RSA.c
+-srcs_ext-y += X509/TpmASN1.c
+-srcs_ext-y += X509/X509_spt.c
+-srcs_ext-y += command/Attestation/CertifyX509.c
+-srcs_ext-y += command/Attestation/GetCommandAuditDigest.c
+-srcs_ext-y += command/Attestation/GetSessionAuditDigest.c
+-srcs_ext-y += command/Attestation/Attest_spt.c
+-srcs_ext-y += command/Attestation/Quote.c
+-srcs_ext-y += command/Attestation/Certify.c
+-srcs_ext-y += command/Attestation/CertifyCreation.c
+-srcs_ext-y += command/Attestation/GetTime.c
+-srcs_ext-y += command/Random/GetRandom.c
+-srcs_ext-y += command/Random/StirRandom.c
+-srcs_ext-y += command/NVStorage/NV_WriteLock.c
+-srcs_ext-y += command/NVStorage/NV_ReadPublic.c
+-srcs_ext-y += command/NVStorage/NV_spt.c
+-srcs_ext-y += command/NVStorage/NV_Increment.c
+-srcs_ext-y += command/NVStorage/NV_ChangeAuth.c
+-srcs_ext-y += command/NVStorage/NV_UndefineSpaceSpecial.c
+-srcs_ext-y += command/NVStorage/NV_SetBits.c
+-srcs_ext-y += command/NVStorage/NV_Write.c
+-srcs_ext-y += command/NVStorage/NV_GlobalWriteLock.c
+-srcs_ext-y += command/NVStorage/NV_Read.c
+-srcs_ext-y += command/NVStorage/NV_Extend.c
+-srcs_ext-y += command/NVStorage/NV_Certify.c
+-srcs_ext-y += command/NVStorage/NV_ReadLock.c
+-srcs_ext-y += command/NVStorage/NV_DefineSpace.c
+-srcs_ext-y += command/NVStorage/NV_UndefineSpace.c
+-srcs_ext-y += command/HashHMAC/HashSequenceStart.c
+-srcs_ext-y += command/HashHMAC/SequenceUpdate.c
+-srcs_ext-y += command/HashHMAC/MAC_Start.c
+-srcs_ext-y += command/HashHMAC/EventSequenceComplete.c
+-srcs_ext-y += command/HashHMAC/HMAC_Start.c
+-srcs_ext-y += command/HashHMAC/SequenceComplete.c
+-srcs_ext-y += command/Vendor/Vendor_TCG_Test.c
+-srcs_ext-y += command/Ecdaa/Commit.c
+-srcs_ext-y += command/Startup/Startup.c
+-srcs_ext-y += command/Startup/Shutdown.c
+-srcs_ext-y += command/FieldUpgrade/FieldUpgradeData.c
+-srcs_ext-y += command/FieldUpgrade/FirmwareRead.c
+-srcs_ext-y += command/FieldUpgrade/FieldUpgradeStart.c
+-srcs_ext-y += command/Capability/TestParms.c
+-srcs_ext-y += command/Capability/GetCapability.c
+-srcs_ext-y += command/ClockTimer/ACT_spt.c
+-srcs_ext-y += command/ClockTimer/ClockRateAdjust.c
+-srcs_ext-y += command/ClockTimer/ACT_SetTimeout.c
+-srcs_ext-y += command/ClockTimer/ClockSet.c
+-srcs_ext-y += command/ClockTimer/ReadClock.c
+-srcs_ext-y += command/Session/PolicyRestart.c
+-srcs_ext-y += command/Session/StartAuthSession.c
+-srcs_ext-y += command/EA/PolicyDuplicationSelect.c
+-srcs_ext-y += command/EA/PolicyPCR.c
+-srcs_ext-y += command/EA/PolicySecret.c
+-srcs_ext-y += command/EA/PolicyTicket.c
+-srcs_ext-y += command/EA/PolicyTemplate.c
+-srcs_ext-y += command/EA/PolicyNV.c
+-srcs_ext-y += command/EA/PolicyGetDigest.c
+-srcs_ext-y += command/EA/PolicyCpHash.c
+-srcs_ext-y += command/EA/PolicyOR.c
+-srcs_ext-y += command/EA/Policy_spt.c
+-srcs_ext-y += command/EA/PolicyLocality.c
+-srcs_ext-y += command/EA/PolicyAuthorize.c
+-srcs_ext-y += command/EA/PolicyAuthorizeNV.c
+-srcs_ext-y += command/EA/PolicyPassword.c
+-srcs_ext-y += command/EA/PolicyCounterTimer.c
+-srcs_ext-y += command/EA/PolicyAuthValue.c
+-srcs_ext-y += command/EA/PolicySigned.c
+-srcs_ext-y += command/EA/PolicyNameHash.c
+-srcs_ext-y += command/EA/PolicyNvWritten.c
+-srcs_ext-y += command/EA/PolicyPhysicalPresence.c
+-srcs_ext-y += command/EA/PolicyCommandCode.c
+-srcs_ext-y += command/Hierarchy/ChangePPS.c
+-srcs_ext-y += command/Hierarchy/HierarchyControl.c
+-srcs_ext-y += command/Hierarchy/HierarchyChangeAuth.c
+-srcs_ext-y += command/Hierarchy/ChangeEPS.c
+-srcs_ext-y += command/Hierarchy/ClearControl.c
+-srcs_ext-y += command/Hierarchy/Clear.c
+-srcs_ext-y += command/Hierarchy/SetPrimaryPolicy.c
+-srcs_ext-y += command/Hierarchy/CreatePrimary.c
+-srcs_ext-y += command/CommandAudit/SetCommandCodeAuditStatus.c
+-srcs_ext-y += command/Object/Object_spt.c
+-srcs_ext-y += command/Object/ReadPublic.c
+-srcs_ext-y += command/Object/Load.c
+-srcs_ext-y += command/Object/LoadExternal.c
+-srcs_ext-y += command/Object/MakeCredential.c
+-srcs_ext-y += command/Object/Unseal.c
+-srcs_ext-y += command/Object/CreateLoaded.c
+-srcs_ext-y += command/Object/ObjectChangeAuth.c
+-srcs_ext-y += command/Object/ActivateCredential.c
+-srcs_ext-y += command/Object/Create.c
+-srcs_ext-y += command/AttachedComponent/AC_GetCapability.c
+-srcs_ext-y += command/AttachedComponent/AC_spt.c
+-srcs_ext-y += command/AttachedComponent/AC_Send.c
+-srcs_ext-y += command/AttachedComponent/Policy_AC_SendSelect.c
+-srcs_ext-y += command/Signature/VerifySignature.c
+-srcs_ext-y += command/Signature/Sign.c
+-srcs_ext-y += command/Duplication/Import.c
+-srcs_ext-y += command/Duplication/Rewrap.c
+-srcs_ext-y += command/Duplication/Duplicate.c
+-srcs_ext-y += command/Symmetric/EncryptDecrypt2.c
+-srcs_ext-y += command/Symmetric/EncryptDecrypt_spt.c
+-srcs_ext-y += command/Symmetric/HMAC.c
+-srcs_ext-y += command/Symmetric/Hash.c
+-srcs_ext-y += command/Symmetric/EncryptDecrypt.c
+-srcs_ext-y += command/Symmetric/MAC.c
+-srcs_ext-y += command/Context/ContextSave.c
+-srcs_ext-y += command/Context/FlushContext.c
+-srcs_ext-y += command/Context/Context_spt.c
+-srcs_ext-y += command/Context/ContextLoad.c
+-srcs_ext-y += command/Context/EvictControl.c
+-srcs_ext-y += command/PCR/PCR_Reset.c
+-srcs_ext-y += command/PCR/PCR_Allocate.c
+-srcs_ext-y += command/PCR/PCR_Extend.c
+-srcs_ext-y += command/PCR/PCR_SetAuthValue.c
+-srcs_ext-y += command/PCR/PCR_Event.c
+-srcs_ext-y += command/PCR/PCR_SetAuthPolicy.c
+-srcs_ext-y += command/PCR/PCR_Read.c
+-srcs_ext-y += command/DA/DictionaryAttackParameters.c
+-srcs_ext-y += command/DA/DictionaryAttackLockReset.c
+-srcs_ext-y += command/Misc/PP_Commands.c
+-srcs_ext-y += command/Misc/SetAlgorithmSet.c
+-srcs_ext-y += command/Testing/GetTestResult.c
+-srcs_ext-y += command/Testing/SelfTest.c
+-srcs_ext-y += command/Testing/IncrementalSelfTest.c
+-srcs_ext-y += command/Asymmetric/ECC_Parameters.c
+-srcs_ext-y += command/Asymmetric/RSA_Encrypt.c
+-srcs_ext-y += command/Asymmetric/ECDH_ZGen.c
+-srcs_ext-y += command/Asymmetric/ECDH_KeyGen.c
+-srcs_ext-y += command/Asymmetric/ZGen_2Phase.c
+-srcs_ext-y += command/Asymmetric/ECC_Decrypt.c
+-srcs_ext-y += command/Asymmetric/RSA_Decrypt.c
+-srcs_ext-y += command/Asymmetric/EC_Ephemeral.c
+-srcs_ext-y += command/Asymmetric/ECC_Encrypt.c
+-srcs_ext-y += subsystem/DA.c
+-srcs_ext-y += subsystem/NvDynamic.c
+-srcs_ext-y += subsystem/Object.c
+-srcs_ext-y += subsystem/PP.c
+-srcs_ext-y += subsystem/Session.c
+-srcs_ext-y += subsystem/NvReserved.c
+-srcs_ext-y += subsystem/Hierarchy.c
+-srcs_ext-y += subsystem/Time.c
+-srcs_ext-y += subsystem/PCR.c
+-srcs_ext-y += subsystem/CommandAudit.c
+-srcs_ext-y += events/_TPM_Hash_Start.c
+-srcs_ext-y += events/_TPM_Init.c
+-srcs_ext-y += events/_TPM_Hash_Data.c
+-srcs_ext-y += events/_TPM_Hash_End.c
+-srcs_ext-y += crypt/CryptSmac.c
+-srcs_ext-y += crypt/CryptEccData.c
+-srcs_ext-y += crypt/CryptCmac.c
+-srcs_ext-y += crypt/BnMath.c
+-srcs_ext-y += crypt/CryptEccSignature.c
+-srcs_ext-y += crypt/AlgorithmTests.c
+-srcs_ext-y += crypt/CryptSelfTest.c
+-srcs_ext-y += crypt/Ticket.c
+-srcs_ext-y += crypt/CryptDes.c
+-srcs_ext-y += crypt/BnMemory.c
+-srcs_ext-y += crypt/CryptPrimeSieve.c
+-srcs_ext-y += crypt/CryptEccKeyExchange.c
+-srcs_ext-y += crypt/BnConvert.c
+-srcs_ext-y += crypt/CryptRand.c
+-srcs_ext-y += crypt/CryptEccMain.c
+-srcs_ext-y += crypt/CryptSym.c
+-srcs_ext-y += crypt/RsaKeyCache.c
+-srcs_ext-y += crypt/CryptUtil.c
+-srcs_ext-y += crypt/CryptEccCrypt.c
+-srcs_ext-y += crypt/CryptRsa.c
+-srcs_ext-y += crypt/CryptPrime.c
+-srcs_ext-y += crypt/PrimeData.c
+-srcs_ext-y += crypt/CryptHash.c
+-srcs_ext-y += support/Marshal.c
+-srcs_ext-y += support/MathOnByteBuffers.c
+-srcs_ext-y += support/TableDrivenMarshal.c
+-srcs_ext-y += support/PropertyCap.c
+-srcs_ext-y += support/Locality.c
+-srcs_ext-y += support/TableMarshalData.c
+-srcs_ext-y += support/Memory.c
+-srcs_ext-y += support/Response.c
+-srcs_ext-y += support/ResponseCodeProcessing.c
+-srcs_ext-y += support/Global.c
+-srcs_ext-y += support/Power.c
+-srcs_ext-y += support/AlgorithmCap.c
+-srcs_ext-y += support/CommandCodeAttributes.c
+-srcs_ext-y += support/Entity.c
+-srcs_ext-y += support/Handle.c
+-srcs_ext-y += support/TpmFail.c
+-srcs_ext-y += support/TpmSizeChecks.c
+-srcs_ext-y += support/Manufacture.c
+-srcs_ext-y += support/IoBuffers.c
+-srcs_ext-y += support/Bits.c
+-srcs_ext-y += main/SessionProcess.c
+-srcs_ext-y += main/CommandDispatcher.c
+-srcs_ext-y += main/ExecCommand.c
++srcs_ext_base-y := $(CFG_MS_TPM_20_REF)/TPMCmd/tpm/
++srcs_ext-y += src/X509/X509_ECC.c
++srcs_ext-y += src/X509/X509_RSA.c
++srcs_ext-y += src/X509/TpmASN1.c
++srcs_ext-y += src/X509/X509_spt.c
++srcs_ext-y += src/command/Attestation/CertifyX509.c
++srcs_ext-y += src/command/Attestation/GetCommandAuditDigest.c
++srcs_ext-y += src/command/Attestation/GetSessionAuditDigest.c
++srcs_ext-y += src/command/Attestation/Attest_spt.c
++srcs_ext-y += src/command/Attestation/Quote.c
++srcs_ext-y += src/command/Attestation/Certify.c
++srcs_ext-y += src/command/Attestation/CertifyCreation.c
++srcs_ext-y += src/command/Attestation/GetTime.c
++srcs_ext-y += src/command/Random/GetRandom.c
++srcs_ext-y += src/command/Random/StirRandom.c
++srcs_ext-y += src/command/NVStorage/NV_WriteLock.c
++srcs_ext-y += src/command/NVStorage/NV_ReadPublic.c
++srcs_ext-y += src/command/NVStorage/NV_spt.c
++srcs_ext-y += src/command/NVStorage/NV_Increment.c
++srcs_ext-y += src/command/NVStorage/NV_ChangeAuth.c
++srcs_ext-y += src/command/NVStorage/NV_UndefineSpaceSpecial.c
++srcs_ext-y += src/command/NVStorage/NV_SetBits.c
++srcs_ext-y += src/command/NVStorage/NV_Write.c
++srcs_ext-y += src/command/NVStorage/NV_GlobalWriteLock.c
++srcs_ext-y += src/command/NVStorage/NV_Read.c
++srcs_ext-y += src/command/NVStorage/NV_Extend.c
++srcs_ext-y += src/command/NVStorage/NV_Certify.c
++srcs_ext-y += src/command/NVStorage/NV_ReadLock.c
++srcs_ext-y += src/command/NVStorage/NV_DefineSpace.c
++srcs_ext-y += src/command/NVStorage/NV_UndefineSpace.c
++srcs_ext-y += src/command/HashHMAC/HashSequenceStart.c
++srcs_ext-y += src/command/HashHMAC/SequenceUpdate.c
++srcs_ext-y += src/command/HashHMAC/MAC_Start.c
++srcs_ext-y += src/command/HashHMAC/EventSequenceComplete.c
++srcs_ext-y += src/command/HashHMAC/HMAC_Start.c
++srcs_ext-y += src/command/HashHMAC/SequenceComplete.c
++srcs_ext-y += src/command/Ecdaa/Commit.c
++srcs_ext-y += src/command/Startup/Startup.c
++srcs_ext-y += src/command/Startup/Shutdown.c
++srcs_ext-y += src/command/FieldUpgrade/FieldUpgradeData.c
++srcs_ext-y += src/command/FieldUpgrade/FirmwareRead.c
++srcs_ext-y += src/command/FieldUpgrade/FieldUpgradeStart.c
++srcs_ext-y += src/command/Capability/TestParms.c
++srcs_ext-y += src/command/Capability/GetCapability.c
++srcs_ext-y += src/command/ClockTimer/ACT_spt.c
++srcs_ext-y += src/command/ClockTimer/ClockRateAdjust.c
++srcs_ext-y += src/command/ClockTimer/ACT_SetTimeout.c
++srcs_ext-y += src/command/ClockTimer/ClockSet.c
++srcs_ext-y += src/command/ClockTimer/ReadClock.c
++srcs_ext-y += src/command/Session/PolicyRestart.c
++srcs_ext-y += src/command/Session/StartAuthSession.c
++srcs_ext-y += src/command/EA/PolicyDuplicationSelect.c
++srcs_ext-y += src/command/EA/PolicyPCR.c
++srcs_ext-y += src/command/EA/PolicySecret.c
++srcs_ext-y += src/command/EA/PolicyTicket.c
++srcs_ext-y += src/command/EA/PolicyTemplate.c
++srcs_ext-y += src/command/EA/PolicyNV.c
++srcs_ext-y += src/command/EA/PolicyGetDigest.c
++srcs_ext-y += src/command/EA/PolicyCpHash.c
++srcs_ext-y += src/command/EA/PolicyOR.c
++srcs_ext-y += src/command/EA/Policy_spt.c
++srcs_ext-y += src/command/EA/PolicyLocality.c
++srcs_ext-y += src/command/EA/PolicyAuthorize.c
++srcs_ext-y += src/command/EA/PolicyAuthorizeNV.c
++srcs_ext-y += src/command/EA/PolicyPassword.c
++srcs_ext-y += src/command/EA/PolicyCounterTimer.c
++srcs_ext-y += src/command/EA/PolicyAuthValue.c
++srcs_ext-y += src/command/EA/PolicySigned.c
++srcs_ext-y += src/command/EA/PolicyNameHash.c
++srcs_ext-y += src/command/EA/PolicyNvWritten.c
++srcs_ext-y += src/command/EA/PolicyPhysicalPresence.c
++srcs_ext-y += src/command/EA/PolicyCommandCode.c
++srcs_ext-y += src/command/Hierarchy/ChangePPS.c
++srcs_ext-y += src/command/Hierarchy/HierarchyControl.c
++srcs_ext-y += src/command/Hierarchy/HierarchyChangeAuth.c
++srcs_ext-y += src/command/Hierarchy/ChangeEPS.c
++srcs_ext-y += src/command/Hierarchy/ClearControl.c
++srcs_ext-y += src/command/Hierarchy/Clear.c
++srcs_ext-y += src/command/Hierarchy/SetPrimaryPolicy.c
++srcs_ext-y += src/command/Hierarchy/CreatePrimary.c
++srcs_ext-y += src/command/CommandAudit/SetCommandCodeAuditStatus.c
++srcs_ext-y += src/command/Object/Object_spt.c
++srcs_ext-y += src/command/Object/ReadPublic.c
++srcs_ext-y += src/command/Object/Load.c
++srcs_ext-y += src/command/Object/LoadExternal.c
++srcs_ext-y += src/command/Object/MakeCredential.c
++srcs_ext-y += src/command/Object/Unseal.c
++srcs_ext-y += src/command/Object/CreateLoaded.c
++srcs_ext-y += src/command/Object/ObjectChangeAuth.c
++srcs_ext-y += src/command/Object/ActivateCredential.c
++srcs_ext-y += src/command/Object/Create.c
++srcs_ext-y += src/command/AttachedComponent/AC_GetCapability.c
++srcs_ext-y += src/command/AttachedComponent/AC_spt.c
++srcs_ext-y += src/command/AttachedComponent/AC_Send.c
++srcs_ext-y += src/command/AttachedComponent/Policy_AC_SendSelect.c
++srcs_ext-y += src/command/Signature/VerifySignature.c
++srcs_ext-y += src/command/Signature/Sign.c
++srcs_ext-y += src/command/Duplication/Import.c
++srcs_ext-y += src/command/Duplication/Rewrap.c
++srcs_ext-y += src/command/Duplication/Duplicate.c
++srcs_ext-y += src/command/EA/PolicyCapability.c
++srcs_ext-y += src/command/EA/PolicyParameters.c
++srcs_ext-y += src/command/Symmetric/EncryptDecrypt2.c
++srcs_ext-y += src/command/Symmetric/EncryptDecrypt_spt.c
++srcs_ext-y += src/command/Symmetric/HMAC.c
++srcs_ext-y += src/command/Symmetric/Hash.c
++srcs_ext-y += src/command/Symmetric/EncryptDecrypt.c
++srcs_ext-y += src/command/Symmetric/MAC.c
++srcs_ext-y += src/command/Context/ContextSave.c
++srcs_ext-y += src/command/Context/FlushContext.c
++srcs_ext-y += src/command/Context/Context_spt.c
++srcs_ext-y += src/command/Context/ContextLoad.c
++srcs_ext-y += src/command/Context/EvictControl.c
++srcs_ext-y += src/command/PCR/PCR_Reset.c
++srcs_ext-y += src/command/PCR/PCR_Allocate.c
++srcs_ext-y += src/command/PCR/PCR_Extend.c
++srcs_ext-y += src/command/PCR/PCR_SetAuthValue.c
++srcs_ext-y += src/command/PCR/PCR_Event.c
++srcs_ext-y += src/command/PCR/PCR_SetAuthPolicy.c
++srcs_ext-y += src/command/PCR/PCR_Read.c
++srcs_ext-y += src/command/DA/DictionaryAttackParameters.c
++srcs_ext-y += src/command/DA/DictionaryAttackLockReset.c
++srcs_ext-y += src/command/Misc/PP_Commands.c
++srcs_ext-y += src/command/Misc/SetAlgorithmSet.c
++srcs_ext-y += src/command/NVStorage/NV_DefineSpace2.c
++srcs_ext-y += src/command/NVStorage/NV_ReadPublic2.c
++srcs_ext-y += src/command/Testing/GetTestResult.c
++srcs_ext-y += src/command/Testing/SelfTest.c
++srcs_ext-y += src/command/Testing/IncrementalSelfTest.c
++srcs_ext-y += src/command/Asymmetric/ECC_Parameters.c
++srcs_ext-y += src/command/Asymmetric/RSA_Encrypt.c
++srcs_ext-y += src/command/Asymmetric/ECDH_ZGen.c
++srcs_ext-y += src/command/Asymmetric/ECDH_KeyGen.c
++srcs_ext-y += src/command/Asymmetric/ZGen_2Phase.c
++srcs_ext-y += src/command/Asymmetric/ECC_Decrypt.c
++srcs_ext-y += src/command/Asymmetric/RSA_Decrypt.c
++srcs_ext-y += src/command/Asymmetric/EC_Ephemeral.c
++srcs_ext-y += src/command/Asymmetric/ECC_Encrypt.c
++srcs_ext-y += src/subsystem/DA.c
++srcs_ext-y += src/subsystem/NvDynamic.c
++srcs_ext-y += src/subsystem/Object.c
++srcs_ext-y += src/subsystem/PP.c
++srcs_ext-y += src/subsystem/Session.c
++srcs_ext-y += src/subsystem/NvReserved.c
++srcs_ext-y += src/subsystem/Hierarchy.c
++srcs_ext-y += src/subsystem/Time.c
++srcs_ext-y += src/subsystem/PCR.c
++srcs_ext-y += src/subsystem/CommandAudit.c
++srcs_ext-y += src/events/_TPM_Hash_Start.c
++srcs_ext-y += src/events/_TPM_Init.c
++srcs_ext-y += src/events/_TPM_Hash_Data.c
++srcs_ext-y += src/events/_TPM_Hash_End.c
++srcs_ext-y += src/crypt/CryptSmac.c
++srcs_ext-y += src/crypt/CryptEccData.c
++srcs_ext-y += src/crypt/CryptCmac.c
++srcs_ext-y += src/crypt/CryptEccSignature.c
++srcs_ext-y += src/crypt/AlgorithmTests.c
++srcs_ext-y += src/crypt/CryptSelfTest.c
++srcs_ext-y += src/crypt/Ticket.c
++srcs_ext-y += src/crypt/CryptPrimeSieve.c
++srcs_ext-y += src/crypt/CryptEccKeyExchange.c
++srcs_ext-y += src/crypt/CryptRand.c
++srcs_ext-y += src/crypt/CryptEccMain.c
++srcs_ext-y += src/crypt/CryptSym.c
++srcs_ext-y += src/crypt/RsaKeyCache.c
++srcs_ext-y += src/crypt/CryptUtil.c
++srcs_ext-y += src/crypt/CryptEccCrypt.c
++srcs_ext-y += src/crypt/CryptRsa.c
++srcs_ext-y += src/crypt/CryptPrime.c
++srcs_ext-y += src/crypt/PrimeData.c
++srcs_ext-y += src/crypt/CryptHash.c
++srcs_ext-y += src/crypt/ecc/TpmEcc_Signature_ECDAA.c
++srcs_ext-y += src/crypt/ecc/TpmEcc_Signature_ECDSA.c
++srcs_ext-y += src/crypt/ecc/TpmEcc_Signature_Schnorr.c
++srcs_ext-y += src/crypt/ecc/TpmEcc_Signature_SM2.c
++srcs_ext-y += src/crypt/ecc/TpmEcc_Signature_Util.c
++srcs_ext-y += src/crypt/ecc/TpmEcc_Util.c
++srcs_ext-y += src/crypt/math/TpmMath_Util.c
++srcs_ext-y += src/support/Marshal.c
++srcs_ext-y += src/support/MathOnByteBuffers.c
++srcs_ext-y += src/support/TableDrivenMarshal.c
++srcs_ext-y += src/support/PropertyCap.c
++srcs_ext-y += src/support/Locality.c
++srcs_ext-y += src/support/TableMarshalData.c
++srcs_ext-y += src/support/Memory.c
++srcs_ext-y += src/support/Response.c
++srcs_ext-y += src/support/ResponseCodeProcessing.c
++srcs_ext-y += src/support/Global.c
++srcs_ext-y += src/support/Power.c
++srcs_ext-y += src/support/AlgorithmCap.c
++srcs_ext-y += src/support/CommandCodeAttributes.c
++srcs_ext-y += src/support/Entity.c
++srcs_ext-y += src/support/Handle.c
++srcs_ext-y += src/support/TpmFail.c
++srcs_ext-y += src/support/TpmSizeChecks.c
++srcs_ext-y += src/support/Manufacture.c
++srcs_ext-y += src/support/IoBuffers.c
++srcs_ext-y += src/support/Bits.c
++srcs_ext-y += src/main/SessionProcess.c
++srcs_ext-y += src/main/CommandDispatcher.c
++srcs_ext-y += src/main/ExecCommand.c
++srcs_ext-y += cryptolibs/TpmBigNum/BnConvert.c
++srcs_ext-y += cryptolibs/TpmBigNum/BnEccConstants.c
++srcs_ext-y += cryptolibs/TpmBigNum/BnMath.c
++srcs_ext-y += cryptolibs/TpmBigNum/BnMemory.c
++srcs_ext-y += cryptolibs/TpmBigNum/TpmBigNumThunks.c
++srcs_ext-y += ../TpmConfiguration/TpmVendorCommandHandlers/Vendor_TCG_Test.c
++srcs_ext-y += ../Platform/src/NVVirtual.c
+diff --git a/tee/TpmToTEEMath.c b/tee/BnToTEEMath.c
+similarity index 86%
+rename from tee/TpmToTEEMath.c
+rename to tee/BnToTEEMath.c
+index 7b662bf..c4106a8 100644
+--- a/tee/TpmToTEEMath.c
++++ b/tee/BnToTEEMath.c
+@@ -6,12 +6,24 @@
+  */
+ 
+ #include "Tpm.h"
++#include "BnConvert_fp.h"
++#include "BnSupport_Interface.h"
+ 
+-#ifdef MATH_LIB_TEE
++#ifdef BN_MATH_LIB_TEE
+ 
+ #include <tee_internal_api.h>
+ 
+ #include <stdio.h>
++
++// This is a workaround for an incorrect definition of BN_WORD_INITIALIZED upstream in
++// https://github.com/TrustedComputingGroup/TPM/blob/main/TPMCmd/tpm/cryptolibs/TpmBigNum/include/BnValues.h
++// at tag V184.
++#undef BN_WORD_INITIALIZED
++#define BN_WORD_INITIALIZED(name, initial) \
++    BN_STRUCT(name, RADIX_BITS) name##_;         \
++    bigNum name = BnInitializeWord(        \
++        (bigNum) & name##_, BN_STRUCT_ALLOCATION(RADIX_BITS), initial)
++
+ static void __maybe_unused printf_bigint(const TEE_BigInt *bigint)
+ {
+ 	size_t buffer_len = 1024;
+@@ -115,6 +127,36 @@ static size_t fmm_ctx_size_from_bn(bigConst bn)
+ 	return TEE_BigIntFMMContextSizeInU32(bn_size_in_bits(bn));
+ }
+ 
++
++#  if LIBRARY_COMPATIBILITY_CHECK
++//** MathLibraryCompatibililtyCheck()
++// This function is only used during development to make sure that the library
++// that is being referenced is using the same size of data structures as the TPM.
++BOOL BnMathLibraryCompatibilityCheck(void)
++{
++    crypt_uword_t i;
++    BYTE test[] = {0x1F, 0x1E, 0x1D, 0x1C, 0x1B, 0x1A, 0x19, 0x18, 0x17, 0x16, 0x15,
++                   0x14, 0x13, 0x12, 0x11, 0x10, 0x0F, 0x0E, 0x0D, 0x0C, 0x0B, 0x0A,
++                   0x09, 0x08, 0x07, 0x06, 0x05, 0x04, 0x03, 0x02, 0x01, 0x00};
++    BN_VAR(tpmTemp, sizeof(test) * 8);  // allocate some space for a test value
++                                        //
++    // Convert the test data to a bigNum
++    BnFromBytes(tpmTemp, test, sizeof(test));
++    // Convert the test data to a TEE_BigInt
++	TEE_BigInt teeTemp[bigint_len_from_bn(tpmTemp)];
++	BIGINT_INIT_FROM_BN(teeTemp, tpmTemp);
++    // Make sure the values are consistent
++	size_t test_out_size = sizeof(test);
++	BYTE test_out[test_out_size];
++	TEE_BigIntConvertToOctetString(test_out, &test_out_size, teeTemp);
++    for(i = 0; i < sizeof(test); i++)
++        GOTO_ERROR_UNLESS(test_out[i] == test[i]);
++    return 1;
++Error:
++    return 0;
++}
++#  endif
++
+ LIB_EXPORT BOOL BnDiv(bigNum quotient, bigNum remainder, bigConst dividend,
+ 		      bigConst divisor)
+ {
+@@ -606,11 +648,13 @@ static void jacobi_to_affine(TEE_BigInt *x3, TEE_BigInt *y3,
+ 	TEE_BigIntMulMod(y3, y1, pm2, p);
+ }
+ 
+-LIB_EXPORT BOOL BnEccModMult(bigPoint R, pointConst S, bigConst d, bigCurve E)
++LIB_EXPORT BOOL BnEccModMult(bigPoint R, pointConst S, bigConst d,
++			     const bigCurveData *E)
+ {
+-	const size_t prime_len = bigint_len_from_bn(E->prime);
+-	TEE_BigInt tee_a[bigint_len_from_bn(E->a)];
+-	BYTE buffer[bn_size_in_bytes(E->prime) + 1];
++	const size_t prime_len =
++		bigint_len_from_bn(AccessCurveConstants(E)->prime);
++	TEE_BigInt tee_a[bigint_len_from_bn(AccessCurveConstants(E)->a)];
++	BYTE buffer[bn_size_in_bytes(AccessCurveConstants(E)->prime) + 1];
+ 	TEE_BigInt tee_p[prime_len];
+ 	TEE_BigInt tee_x1[prime_len];
+ 	TEE_BigInt tee_y1[prime_len];
+@@ -621,14 +665,14 @@ LIB_EXPORT BOOL BnEccModMult(bigPoint R, pointConst S, bigConst d, bigCurve E)
+ 	NUMBYTES size = 0;
+ 
+ 	if (!S)
+-		S = CurveGetG(AccessCurveData(E));
++		S = BnCurveGetG(AccessCurveConstants(E));
+ 
+ 	BIGINT_INIT(tee_x3);
+ 	BIGINT_INIT(tee_y3);
+ 	BIGINT_INIT(tee_z3);
+ 
+-	if (!BIGINT_INIT_FROM_BN(tee_p, E->prime) ||
+-	    !BIGINT_INIT_FROM_BN(tee_a, E->a) ||
++	if (!BIGINT_INIT_FROM_BN(tee_p, AccessCurveConstants(E)->prime) ||
++	    !BIGINT_INIT_FROM_BN(tee_a, AccessCurveConstants(E)->a) ||
+ 	    !BIGINT_INIT_FROM_BN(tee_x1, S->x) ||
+ 	    !BIGINT_INIT_FROM_BN(tee_y1, S->y) ||
+ 	    !BIGINT_INIT_FROM_BN(tee_z1, S->z))
+@@ -649,11 +693,11 @@ LIB_EXPORT BOOL BnEccModMult(bigPoint R, pointConst S, bigConst d, bigCurve E)
+ }
+ 
+ LIB_EXPORT BOOL BnEccModMult2(bigPoint R, pointConst S, bigConst d,
+-			      pointConst Q, bigConst u, bigCurve E)
++			      pointConst Q, bigConst u, const bigCurveData *E)
+ {
+-	size_t prime_len = bigint_len_from_bn(E->prime);
+-	size_t a_len = bigint_len_from_bn(E->a);
+-	BYTE buffer[bn_size_in_bytes(E->prime) + 1];
++	size_t prime_len = bigint_len_from_bn(AccessCurveConstants(E)->prime);
++	size_t a_len = bigint_len_from_bn(AccessCurveConstants(E)->a);
++	BYTE buffer[bn_size_in_bytes(AccessCurveConstants(E)->prime) + 1];
+ 	TEE_BigInt tee_p[prime_len];
+ 	TEE_BigInt tee_x1[prime_len];
+ 	TEE_BigInt tee_y1[prime_len];
+@@ -671,8 +715,8 @@ LIB_EXPORT BOOL BnEccModMult2(bigPoint R, pointConst S, bigConst d,
+ 	BIGINT_INIT(tee_x3);
+ 	BIGINT_INIT(tee_y3);
+ 	BIGINT_INIT(tee_z3);
+-	if (!BIGINT_INIT_FROM_BN(tee_p, E->prime) ||
+-	    !BIGINT_INIT_FROM_BN(tee_a, E->a) ||
++	if (!BIGINT_INIT_FROM_BN(tee_p, AccessCurveConstants(E)->prime) ||
++	    !BIGINT_INIT_FROM_BN(tee_a, AccessCurveConstants(E)->a) ||
+ 	    !BIGINT_INIT_FROM_BN(tee_x1, S->x) ||
+ 	    !BIGINT_INIT_FROM_BN(tee_y1, S->y) ||
+ 	    !BIGINT_INIT_FROM_BN(tee_z1, S->z) ||
+@@ -705,4 +749,28 @@ LIB_EXPORT BOOL BnEccModMult2(bigPoint R, pointConst S, bigConst d,
+ 		return FALSE;
+ 	return TRUE;
+ }
++
++LIB_EXPORT BOOL BnEccAdd(bigPoint            R,  // OUT: computed point
++                         pointConst          S,  // IN: point to multiply by 'd'
++                         pointConst          Q,  // IN: second point
++                         const bigCurveData* E   // IN: curve
++)
++{
++	BN_WORD_INITIALIZED(one, 1);
++	return BnEccModMult2(R, S, one, Q, one, E);
++}
++
++LIB_EXPORT bigCurveData* BnCurveInitialize(
++    bigCurveData* E,       // IN: curve structure to initialize
++    TPM_ECC_CURVE curveId  // IN: curve identifier
++)
++{
++	*E = BnGetCurveData(curveId);
++	return E;
++}
++
++LIB_EXPORT void BnCurveFree(bigCurveData *E)
++{
++	(void)E;
++}
+ #endif
+diff --git a/tee/TpmToTEESupport.c b/tee/BnToTEESupport.c
+similarity index 67%
+rename from tee/TpmToTEESupport.c
+rename to tee/BnToTEESupport.c
+index 643494c..d2ddee2 100644
+--- a/tee/TpmToTEESupport.c
++++ b/tee/BnToTEESupport.c
+@@ -6,9 +6,9 @@
+ 
+ #include "Tpm.h"
+ 
+-#if defined(HASH_LIB_TEE) || defined(MATH_LIB_TEE) || defined(SYM_LIB_TEE)
++#if defined(BN_MATH_LIB_TEE)
+ 
+-LIB_EXPORT int SupportLibInit(void)
++LIB_EXPORT int BnSupportLibInit(void)
+ {
+     return TRUE;
+ }
+-- 
+2.47.3
+

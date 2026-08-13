@@ -1,0 +1,29 @@
+From 5f6f753d9f1428811420734d5f312249d0aa7ece Mon Sep 17 00:00:00 2001
+From: Sven Bauer <svenbauer@siemens.com>
+Date: Wed, 3 Jun 2026 16:43:59 +0200
+Subject: [PATCH 2/2] Disable command TPM2_CertifyX509.
+
+Command TPM2_CertifyX509 has been declared "deprecated" in TPM spec v184.
+Hence, the switch to enable it is now set to "CC_NO".
+
+Signed-off-by: Sven Bauer <svenbauer@siemens.com>
+---
+ platform/include/TpmConfiguration/TpmProfile_CommandList.h | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/platform/include/TpmConfiguration/TpmProfile_CommandList.h b/platform/include/TpmConfiguration/TpmProfile_CommandList.h
+index 7012351..3bd9b2a 100644
+--- a/platform/include/TpmConfiguration/TpmProfile_CommandList.h
++++ b/platform/include/TpmConfiguration/TpmProfile_CommandList.h
+@@ -80,7 +80,7 @@
+ // While all of the TPM reference implementation is provided "AS IS" without any
+ // warranty, the current design and implementation of CertifyX509 are considered
+ // to be especially unsuitable for product use.
+-#define CC_CertifyX509               CC_YES
++#define CC_CertifyX509               CC_NO
+ 
+ // Normal commands:
+ 
+-- 
+2.47.3
+
