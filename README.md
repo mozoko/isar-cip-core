@@ -41,6 +41,9 @@ security image for QEMU can be started like this:
 
     TARGET_IMAGE=cip-core-image-security ./start-qemu.sh x86
 
+For using the Firmware TPM / UEFI key storage option with a virtual target
+(`kas/opt/ftpm-stmm.yml`), QEMU v10.2.0 or newer is required.
+
 Physical targets will generate ready-to-boot images under
 `build/tmp/deploy/images/`. To flash, e.g., the BeagleBone Black image to an SD
 card, run
