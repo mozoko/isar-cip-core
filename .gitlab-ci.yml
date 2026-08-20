@@ -78,7 +78,7 @@ default:
     - cat /proc/self/gid_map
     - cat /etc/subuid
     - cat /etc/subgid
-    - kas shell -c "cat /proc/self/uid_map" ${base_yaml}
+    - sleep 3600
     - exit 1
     - kas build ${base_yaml}
     - if [ "${deploy}" = "enable" ]; then scripts/deploy-cip-core.sh ${release} ${target} ${extension} ${no_kernel} ${dtb} ${CI_PIPELINE_ID} wic; fi
