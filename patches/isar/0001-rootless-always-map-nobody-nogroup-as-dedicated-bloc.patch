@@ -1,0 +1,68 @@
+From 84e96ee9e8160e1270c59e2e9d8fd4d9cb0ad98f Mon Sep 17 00:00:00 2001
+From: Felix Moessbauer <felix.moessbauer@siemens.com>
+Date: Thu, 20 Aug 2026 15:40:47 +0200
+Subject: [PATCH 1/1] rootless: always map nobody/nogroup as dedicated block
+
+The nobody/nogroup ids were mapped as part of the linear id range,
+with an extra single-id mapping added only if the range was too small
+to contain them. The extra mapping was guarded by "uid_cnt < nobody_id",
+but the linear range ends at uid_cnt-2, so it covers nobody only for
+uid_cnt >= 65536. For a count of 65534 or 65535 neither the linear range
+nor the guard mapped nobody.
+
+Relying on the linear range to cover nobody is unsafe in general. If that
+range covers the outer id that --map-root-user maps to, unshare punches a
+hole out of the mapping, and per unshare(1) this "may result in the
+highest user ID of the mapping not being mapped". That highest id is
+exactly nobody. This happens whenever the subid range overlaps the id of
+the calling user, e.g. with
+
+  builder:0:65536
+
+where the mapped block 1..65534 contains the builder's own uid. The
+resulting namespace then silently lacks a nobody mapping, while a range
+like 100000:65536 is unaffected and hides the problem.
+
+Map nobody/nogroup as a separate block at the top of the range and cap
+the linear range at nobody_id-1. The separate block does not overlap
+--map-root-user, so it survives, and a hole now at most costs id 65533.
+
+Fixes: 4fedb1ae ("add support for fully rootless builds")
+Signed-off-by: Felix Moessbauer <felix.moessbauer@siemens.com>
+---
+ meta/classes-global/base.bbclass | 16 ++++++++++------
+ 1 file changed, 10 insertions(+), 6 deletions(-)
+
+diff --git a/meta/classes-global/base.bbclass b/meta/classes-global/base.bbclass
+index e2fc77dc..31a3fc01 100644
+--- a/meta/classes-global/base.bbclass
++++ b/meta/classes-global/base.bbclass
+@@ -469,15 +469,19 @@ def run_privileged_cmd(d):
+         nobody_subid = uid_base + uid_cnt - 1
+         gid_base, gid_cnt = get_subid_range('/etc/subgid', d)
+         nogroup_subid = gid_base + gid_cnt - 1
++        # nobody/nogroup need a dedicated block at the top of the range. As part
++        # of the linear range they are lost whenever that range covers the outer
++        # id of --map-root-user, because unshare then punches out a hole and
++        # drops the highest id of the range.
++        uid_linear_cnt = min(uid_cnt - 2, nobody_id - 1)
++        gid_linear_cnt = min(gid_cnt - 2, nobody_id - 1)
+         cmd = 'unshare --mount --pid --uts --ipc --user' \
+               ' --kill-child' \
+               ' --setuid 0 --setgid 0 --fork' \
+-              f' --map-users  1:{uid_base+1}:{uid_cnt-2}' \
+-              f' --map-groups 1:{gid_base+1}:{gid_cnt-2}'
+-        if uid_cnt < nobody_id:
+-            cmd += f' --map-users  {nobody_id}:{nobody_subid}:1'
+-        if gid_cnt < nobody_id:
+-            cmd += f' --map-groups {nobody_id}:{nogroup_subid}:1'
++              f' --map-users  1:{uid_base+1}:{uid_linear_cnt}' \
++              f' --map-groups 1:{gid_base+1}:{gid_linear_cnt}' \
++              f' --map-users  {nobody_id}:{nobody_subid}:1' \
++              f' --map-groups {nobody_id}:{nogroup_subid}:1'
+         cmd += " --map-root-user"
+     else:
+         cmd = 'sudo -E'
+-- 
+2.55.0
+

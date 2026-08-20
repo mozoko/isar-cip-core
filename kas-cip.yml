@@ -31,10 +31,7 @@ repos:
         path: patches/isar/0001-fix-rootfs-create-dev-fd-links-under-rootless.patch
       02-proc:
         repo: cip-core
-        path: patches/isar/0001-rootless-bind-mount-proc-as-fallback.patch
-      03-proc:
-        repo: cip-core
-        path: patches/isar/0001-debug-group-change.patch
+        path: patches/isar/0001-rootless-always-map-nobody-nogroup-as-dedicated-bloc.patch
 
 bblayers_conf_header:
   standard: |
