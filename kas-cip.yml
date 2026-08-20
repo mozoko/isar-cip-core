@@ -25,6 +25,13 @@ repos:
     commit: 481db3b2e8949336576e50a78aaf5d101f52c8d2
     layers:
       meta:
+    patches:
+      01-proc:
+        repo: cip-core
+        path: patches/isar/0001-fix-rootfs-create-dev-fd-links-under-rootless.patch
+      02-proc:
+        repo: cip-core
+        path: patches/isar/0001-rootless-bind-mount-proc-as-fallback.patch
 
 bblayers_conf_header:
   standard: |

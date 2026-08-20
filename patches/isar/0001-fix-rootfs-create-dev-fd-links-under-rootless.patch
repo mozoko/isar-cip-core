@@ -1,0 +1,47 @@
+From fef4800874176390b22db276eb1dd6beb096b5fb Mon Sep 17 00:00:00 2001
+From: Felix Moessbauer <felix.moessbauer@siemens.com>
+Date: Tue, 18 Aug 2026 14:09:23 +0200
+Subject: [PATCH 1/1] fix(rootfs): create dev fd links under rootless
+
+The /dev/std{in,out.err} and /dev/fd entries are links into proc. While
+these are not explicitly required by any Debian policy, mmdebstrap
+creates them and they are used when installing systemd units under dracut.
+
+We only observed warnings regarding the missing entries, but no issues
+so far. Nonetheless, we now create them on-the-fly to behave similar to
+mmdebstrap.
+
+Fixes: 4fedb1ae ("add support for fully rootless builds")
+Signed-off-by: Felix Moessbauer <felix.moessbauer@siemens.com>
+---
+ meta/classes-global/base.bbclass | 7 ++++++-
+ 1 file changed, 6 insertions(+), 1 deletion(-)
+
+diff --git a/meta/classes-global/base.bbclass b/meta/classes-global/base.bbclass
+index f074eee6..e2fc77dc 100644
+--- a/meta/classes-global/base.bbclass
++++ b/meta/classes-global/base.bbclass
+@@ -401,6 +401,10 @@ def insert_isar_mounts(d, rootfs, mounts):
+         lines.append('mount -o bind /dev/random {}/dev/random'.format(rootfs))
+         lines.append('mount -o bind /dev/urandom {}/dev/urandom'.format(rootfs))
+         lines.append('mount -t proc none {}/proc'.format(rootfs))
++        lines.append('ln -sfn /proc/self/fd {}/dev/fd'.format(rootfs))
++        lines.append('ln -sfn /proc/self/fd/0 {}/dev/stdin'.format(rootfs))
++        lines.append('ln -sfn /proc/self/fd/1 {}/dev/stdout'.format(rootfs))
++        lines.append('ln -sfn /proc/self/fd/2 {}/dev/stderr'.format(rootfs))
+         # we do not unshare the network namespace, so we cannot create a sysfs, hence bind-mount
+         lines.append('mount -o rbind /sys {}/sys'.format(rootfs))
+ 
+@@ -417,7 +421,8 @@ def insert_isar_umounts(d, rootfs, mounts):
+     remove the mountpoints.
+     """
+     lines = []
+-    to_unlink = ['/dev/null', '/dev/random', '/dev/urandom', '/dev/ptmx']
++    to_unlink = ['/dev/null', '/dev/random', '/dev/urandom', '/dev/ptmx',
++                 '/dev/stdin', '/dev/stdout', '/dev/stderr', '/dev/fd']
+     to_rmdir = ['/dev/pts', '/dev/shm']
+     if d.getVar('ISAR_CHROOT_MODE') == 'unshare':
+         lines.append('rm -f ' + ' '.join(['{}/{}'.format(rootfs, f) for f in to_unlink]))
+-- 
+2.55.0
+
