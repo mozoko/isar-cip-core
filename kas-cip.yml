@@ -32,6 +32,9 @@ repos:
       02-proc:
         repo: cip-core
         path: patches/isar/0001-rootless-bind-mount-proc-as-fallback.patch
+      03-proc:
+        repo: cip-core
+        path: patches/isar/0001-debug-group-change.patch
 
 bblayers_conf_header:
   standard: |

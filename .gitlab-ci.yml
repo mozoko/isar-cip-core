@@ -34,7 +34,7 @@ stages:
   - cve-check
 
 default:
-  image: registry.gitlab.com/cip-project/cip-testing/gitlab-cloud-ci/kas-isar:next
+  image: ghcr.io/siemens/kas/kas-isar:next
   before_script:
     - export http_proxy=$HTTP_PROXY
     - export https_proxy=$HTTPS_PROXY
@@ -78,8 +78,6 @@ default:
     - cat /proc/self/gid_map
     - cat /etc/subuid
     - cat /etc/subgid
-    - sleep 3600
-    - exit 1
     - kas build ${base_yaml}
     - if [ "${deploy}" = "enable" ]; then scripts/deploy-cip-core.sh ${release} ${target} ${extension} ${no_kernel} ${dtb} ${CI_PIPELINE_ID} wic; fi
     - if [ "${build_updates}" = "enable" ]; then
