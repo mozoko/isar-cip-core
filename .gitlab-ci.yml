@@ -73,6 +73,12 @@ default:
     - if [ "${swupdate_version}" = "2022.12" ]; then base_yaml="${base_yaml}:kas/opt/swupdate-2022.12.yaml"; fi
     - if [ "${no_kernel}" = "enable" ]; then base_yaml="${base_yaml}:kas/opt/no_kernel.yml:kas/opt/targz.yml"; fi
     - echo "Building ${base_yaml}"
+    - cat /proc/self/status
+    - cat /proc/self/uid_map
+    - cat /proc/self/gid_map
+    - cat /etc/subuid
+    - cat /etc/subgid
+    - exit 1
     - kas build ${base_yaml}
     - if [ "${deploy}" = "enable" ]; then scripts/deploy-cip-core.sh ${release} ${target} ${extension} ${no_kernel} ${dtb} ${CI_PIPELINE_ID} wic; fi
     - if [ "${build_updates}" = "enable" ]; then
