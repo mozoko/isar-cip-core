@@ -367,7 +367,7 @@ done
 
 if [ -x /usr/bin/tpm2_shutdown ]; then
 	# shutdown the TPM to avoid DA lockout due to powerfailure
-	tpm2_shutdown
+	tpm2_shutdown -c
 fi
 
 if [ -n "$watchdog_pid" ]; then
