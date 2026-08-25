@@ -1,0 +1,42 @@
+From 7807c02e3295a7e13cb386c31266f440baac10c3 Mon Sep 17 00:00:00 2001
+From: Jan Kiszka <jan.kiszka@siemens.com>
+Date: Thu, 10 Sep 2026 07:58:33 +0200
+Subject: [PATCH 3/7] tee: optee: Avoid binding a service twice
+
+In case optee_bind_services is invoked more than once successfully, make
+sure that already bound services are not rebound, creating multiple
+instances of themselves. When introducing RPMB-driven service scanning
+this scenario could pop up.
+
+Signed-off-by: Jan Kiszka <jan.kiszka@siemens.com>
+---
+ drivers/tee/optee/core.c | 6 ++++++
+ 1 file changed, 6 insertions(+)
+
+diff --git a/drivers/tee/optee/core.c b/drivers/tee/optee/core.c
+index 1893ae25137..8920f348137 100644
+--- a/drivers/tee/optee/core.c
++++ b/drivers/tee/optee/core.c
+@@ -83,6 +83,7 @@ static int bind_service_list(struct udevice *dev, struct tee_shm *service_list,
+ {
+ 	const struct tee_optee_ta_uuid *service_uuid = (const void *)service_list->addr;
+ 	struct optee_service *service;
++	struct udevice *service_dev;
+ 	size_t idx;
+ 	int ret;
+ 
+@@ -91,6 +92,11 @@ static int bind_service_list(struct udevice *dev, struct tee_shm *service_list,
+ 		if (!service)
+ 			continue;
+ 
++		ret = device_find_child_by_name(dev, service->driver_name,
++						&service_dev);
++		if (!ret && dev_get_flags(service_dev) & DM_FLAG_BOUND)
++			continue;
++
+ 		ret = device_bind_driver_to_node(dev, service->driver_name, service->driver_name,
+ 						 dev_ofnode(dev), NULL);
+ 		if (ret) {
+-- 
+2.47.3
+

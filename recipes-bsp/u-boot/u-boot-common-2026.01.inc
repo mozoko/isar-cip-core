@@ -26,6 +26,13 @@ SRC_URI += " \
     file://0001-riscv-create-a-custom-CPU-implementation-for-PolarFi.patch \
     file://0002-riscv-mpfs-move-SoC-level-options-to-the-CPU-Kconfig.patch \
     file://0003-riscv-Add-support-for-BeagleV-Fire.patch \
+    file://0001-test-boot-measurement-Fix-compilation-for-non-sandbo.patch \
+    file://0002-tee-optee-Factor-out-service-enumeration-and-binding.patch \
+    file://0003-tee-optee-Avoid-binding-a-service-twice.patch \
+    file://0004-tee-optee-Add-support-for-enumerating-services-that-.patch \
+    file://0005-tee-optee-Do-not-warn-about-TEE_ERROR_STORAGE_NOT_AV.patch \
+    file://0006-mmc-Call-back-to-optee-after-a-successful-mmc_init.patch \
+    file://0007-mmc-Make-MMC-Device-not-found-a-debug-output.patch \
     file://rules.tmpl;subdir=debian"
 SRC_URI[sha256sum] = "b60d5865cefdbc75da8da4156c56c458e00de75a49b80c1a2e58a96e30ad0d54"
 

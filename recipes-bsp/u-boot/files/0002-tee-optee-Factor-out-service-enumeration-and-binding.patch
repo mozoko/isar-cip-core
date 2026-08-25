@@ -1,0 +1,96 @@
+From fb3993d9059fc531a13702378a8a416fe2455c12 Mon Sep 17 00:00:00 2001
+From: Jan Kiszka <jan.kiszka@siemens.com>
+Date: Sun, 23 Aug 2026 20:25:03 +0200
+Subject: [PATCH 2/7] tee: optee: Factor out service enumeration and binding
+ functions
+
+This already avoids code duplication between the different enumeration
+commands. It will furthermore allow to implement a third one for
+services with RPMB needs.
+
+Signed-off-by: Jan Kiszka <jan.kiszka@siemens.com>
+Reviewed-by: Ilias Apalodimas <ilias.apalodimas@linaro.org>
+---
+ drivers/tee/optee/core.c          | 33 +++++++++++++++++--------------
+ drivers/tee/optee/optee_private.h |  3 +++
+ 2 files changed, 21 insertions(+), 15 deletions(-)
+
+diff --git a/drivers/tee/optee/core.c b/drivers/tee/optee/core.c
+index 5fc0505c788..1893ae25137 100644
+--- a/drivers/tee/optee/core.c
++++ b/drivers/tee/optee/core.c
+@@ -156,7 +156,7 @@ static int enum_services(struct udevice *dev, struct tee_shm **shm, size_t *coun
+ 	return ret;
+ }
+ 
+-static int open_enum_session(struct udevice *dev, u32 *tee_sess)
++int optee_open_enum_session(struct udevice *dev, u32 *tee_sess)
+ {
+ 	const struct tee_optee_ta_uuid pta_uuid = PTA_DEVICE_ENUM;
+ 	struct tee_open_session_arg arg = { };
+@@ -176,31 +176,34 @@ static int open_enum_session(struct udevice *dev, u32 *tee_sess)
+ 	return 0;
+ }
+ 
+-static int bind_service_drivers(struct udevice *dev)
++int optee_bind_services(struct udevice *dev, u32 tee_sess,
++			unsigned int pta_cmd)
+ {
+ 	struct tee_shm *service_list = NULL;
+ 	size_t service_count;
+-	u32 tee_sess;
+-	int ret, ret2;
+-
+-	ret = open_enum_session(dev, &tee_sess);
+-	if (ret)
+-		return ret;
++	int ret;
+ 
+ 	ret = enum_services(dev, &service_list, &service_count, tee_sess,
+-			    PTA_CMD_GET_DEVICES);
++			    pta_cmd);
+ 	if (!ret && service_count)
+ 		ret = bind_service_list(dev, service_list, service_count);
+ 
+ 	tee_shm_free(service_list);
+-	service_list = NULL;
+ 
+-	ret2 = enum_services(dev, &service_list, &service_count, tee_sess,
+-			     PTA_CMD_GET_DEVICES_SUPP);
+-	if (!ret2 && service_count)
+-		ret2 = bind_service_list(dev, service_list, service_count);
++	return ret;
++}
++
++static int bind_service_drivers(struct udevice *dev)
++{
++	u32 tee_sess;
++	int ret, ret2;
+ 
+-	tee_shm_free(service_list);
++	ret = optee_open_enum_session(dev, &tee_sess);
++	if (ret)
++		return ret;
++
++	ret = optee_bind_services(dev, tee_sess, PTA_CMD_GET_DEVICES);
++	ret2 = optee_bind_services(dev, tee_sess, PTA_CMD_GET_DEVICES_SUPP);
+ 
+ 	tee_close_session(dev, tee_sess);
+ 
+diff --git a/drivers/tee/optee/optee_private.h b/drivers/tee/optee/optee_private.h
+index 1f07a27ee4b..25b6b3c3218 100644
+--- a/drivers/tee/optee/optee_private.h
++++ b/drivers/tee/optee/optee_private.h
+@@ -27,6 +27,9 @@ struct optee_msg_arg;
+ 
+ void optee_suppl_cmd(struct udevice *dev, struct tee_shm *shm_arg,
+ 		     void **page_list);
++int optee_open_enum_session(struct udevice *dev, u32 *tee_sess);
++int optee_bind_services(struct udevice *dev, u32 tee_sess,
++			unsigned int pta_cmd);
+ 
+ #ifdef CONFIG_SUPPORT_EMMC_RPMB
+ /**
+-- 
+2.47.3
+

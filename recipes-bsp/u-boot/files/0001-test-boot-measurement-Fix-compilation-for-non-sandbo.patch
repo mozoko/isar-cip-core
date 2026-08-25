@@ -1,0 +1,43 @@
+From bb19b017d4d389b4ba9a08e35e4e19d39f552c5d Mon Sep 17 00:00:00 2001
+From: Jan Kiszka <jan.kiszka@siemens.com>
+Date: Thu, 20 Aug 2026 17:57:08 +0200
+Subject: [PATCH 1/7] test: boot: measurement: Fix compilation for non-sandbox
+ builds
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+asm/io.h provides map_to_sysmem() only for the sandbox. Other targets
+fail the build with
+
+../test/boot/measurement.c: In function ‘measure’:
+../test/boot/measurement.c:30:33: error: implicit declaration of function ‘map_to_sysmem’; did you mean ‘map_physmem’? [-Wimplicit-function-declaration]
+   30 |         images.os.image_start = map_to_sysmem(kernel);
+      |                                 ^~~~~~~~~~~~~
+      |                                 map_physmem
+
+Use the proper header that will pull asm/io.h only where needed.
+
+Signed-off-by: Jan Kiszka <jan.kiszka@siemens.com>
+---
+ test/boot/measurement.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/test/boot/measurement.c b/test/boot/measurement.c
+index 71f503f1567..85a01f1fec8 100644
+--- a/test/boot/measurement.c
++++ b/test/boot/measurement.c
+@@ -9,9 +9,9 @@
+ #include <bootm.h>
+ #include <env.h>
+ #include <malloc.h>
++#include <mapmem.h>
+ #include <test/test.h>
+ #include <test/ut.h>
+-#include <asm/io.h>
+ 
+ #define MEASUREMENT_TEST(_name, _flags)	\
+ 	UNIT_TEST(_name, _flags, measurement)
+-- 
+2.47.3
+

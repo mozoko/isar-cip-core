@@ -1,0 +1,156 @@
+From 4880f93eac7cce03d6330bea2d651b5829b01088 Mon Sep 17 00:00:00 2001
+From: Jan Kiszka <jan.kiszka@siemens.com>
+Date: Fri, 21 Aug 2026 08:39:26 +0200
+Subject: [PATCH 4/7] tee: optee: Add support for enumerating services that
+ only need RPMB
+
+Up to OP-TEE 4.4.0, all services that needed a supplicant where returned
+by PTA_CMD_GET_DEVICES_SUPP. Since then, services that only need a
+supplicant for the purpose of accessing the RPMB are only enumerated by
+the new, separate PTA_CMD_GET_DEVICES_RPMB. U-Boot so far lacks support
+for that, thus no longer finds such services, e.g. fTPM.
+
+Perform the separate enumeration during probe but, as that may fail if
+the MMC is not probed yet, also provide a callback to trigger a retry
+when another MMC device becomes available.
+
+Signed-off-by: Jan Kiszka <jan.kiszka@siemens.com>
+---
+ drivers/tee/optee/core.c          | 22 +++++++---------------
+ drivers/tee/optee/optee_private.h | 21 +++++++++++++++++++++
+ drivers/tee/optee/rpmb.c          | 20 ++++++++++++++++++++
+ include/tee/optee.h               |  6 ++++++
+ 4 files changed, 54 insertions(+), 15 deletions(-)
+
+diff --git a/drivers/tee/optee/core.c b/drivers/tee/optee/core.c
+index 8920f348137..e5dbbf00410 100644
+--- a/drivers/tee/optee/core.c
++++ b/drivers/tee/optee/core.c
+@@ -27,19 +27,6 @@
+  */
+ #define PTA_DEVICE_ENUM		{ 0x7011a688, 0xddde, 0x4053, \
+ 				  { 0xa5, 0xa9, 0x7b, 0x3c, 0x4d, 0xdf, 0x13, 0xb8 } }
+-/*
+- * PTA_CMD_GET_DEVICES - List services without supplicant dependencies
+- *
+- * [out]    memref[0]: List of the UUIDs of service enumerated by OP-TEE
+- */
+-#define PTA_CMD_GET_DEVICES		0x0
+-
+-/*
+- * PTA_CMD_GET_DEVICES_SUPP - List services depending on tee supplicant
+- *
+- * [out]    memref[0]: List of the UUIDs of service enumerated by OP-TEE
+- */
+-#define PTA_CMD_GET_DEVICES_SUPP	0x1
+ 
+ typedef void (optee_invoke_fn)(unsigned long, unsigned long, unsigned long,
+ 			       unsigned long, unsigned long, unsigned long,
+@@ -201,8 +188,8 @@ int optee_bind_services(struct udevice *dev, u32 tee_sess,
+ 
+ static int bind_service_drivers(struct udevice *dev)
+ {
++	int ret, ret2, ret3 = 0;
+ 	u32 tee_sess;
+-	int ret, ret2;
+ 
+ 	ret = optee_open_enum_session(dev, &tee_sess);
+ 	if (ret)
+@@ -210,13 +197,18 @@ static int bind_service_drivers(struct udevice *dev)
+ 
+ 	ret = optee_bind_services(dev, tee_sess, PTA_CMD_GET_DEVICES);
+ 	ret2 = optee_bind_services(dev, tee_sess, PTA_CMD_GET_DEVICES_SUPP);
++	if (CONFIG_IS_ENABLED(SUPPORT_EMMC_RPMB))
++		ret3 = optee_bind_services(dev, tee_sess,
++					   PTA_CMD_GET_DEVICES_RPMB);
+ 
+ 	tee_close_session(dev, tee_sess);
+ 
+ 	if (ret)
+ 		return ret;
++	if (ret2)
++		return ret2;
+ 
+-	return ret2;
++	return ret3;
+ }
+ 
+ /**
+diff --git a/drivers/tee/optee/optee_private.h b/drivers/tee/optee/optee_private.h
+index 25b6b3c3218..daff3e04493 100644
+--- a/drivers/tee/optee/optee_private.h
++++ b/drivers/tee/optee/optee_private.h
+@@ -9,6 +9,27 @@
+ #include <tee.h>
+ #include <log.h>
+ 
++/*
++ * PTA_CMD_GET_DEVICES - List services without supplicant dependencies
++ *
++ * [out]    memref[0]: List of the UUIDs of service enumerated by OP-TEE
++ */
++#define PTA_CMD_GET_DEVICES		0x0
++
++/*
++ * PTA_CMD_GET_DEVICES_SUPP - List services depending on tee supplicant
++ *
++ * [out]    memref[0]: List of the UUIDs of service enumerated by OP-TEE
++ */
++#define PTA_CMD_GET_DEVICES_SUPP	0x1
++
++/*
++ * PTA_CMD_GET_DEVICES_RPMB - List services only depending on RPMB support
++ *
++ * [out]    memref[0]: List of the UUIDs of service enumerated by OP-TEE
++ */
++#define PTA_CMD_GET_DEVICES_RPMB	0x2
++
+ /**
+  * struct optee_private - OP-TEE driver private data
+  * @rpmb_mmc:		mmc device for the RPMB partition
+diff --git a/drivers/tee/optee/rpmb.c b/drivers/tee/optee/rpmb.c
+index bacced6af6c..7ae6045511b 100644
+--- a/drivers/tee/optee/rpmb.c
++++ b/drivers/tee/optee/rpmb.c
+@@ -191,3 +191,23 @@ void optee_suppl_rpmb_release(struct udevice *dev)
+ {
+ 	release_mmc(dev_get_priv(dev));
+ }
++
++void optee_rpmb_available(void)
++{
++	struct udevice *dev;
++	struct uclass *uc;
++	u32 tee_sess;
++
++	uclass_id_foreach_dev(UCLASS_TEE, dev, uc) {
++		if (strcmp(dev->driver->name, "optee") != 0 ||
++		    !device_active(dev))
++			continue;
++
++		if (optee_open_enum_session(dev, &tee_sess) != 0)
++			continue;
++
++		optee_bind_services(dev, tee_sess, PTA_CMD_GET_DEVICES_RPMB);
++
++		tee_close_session(dev, tee_sess);
++	}
++}
+diff --git a/include/tee/optee.h b/include/tee/optee.h
+index 77729450bb6..f503f367c0f 100644
+--- a/include/tee/optee.h
++++ b/include/tee/optee.h
+@@ -65,4 +65,10 @@ static inline int optee_copy_fdt_nodes(void *new_blob)
+ }
+ #endif
+ 
++#if defined(CONFIG_OPTEE) && defined(CONFIG_SUPPORT_EMMC_RPMB)
++void optee_rpmb_available(void);
++#else
++static inline void optee_rpmb_available(void) {}
++#endif
++
+ #endif /* _OPTEE_H */
+-- 
+2.47.3
+

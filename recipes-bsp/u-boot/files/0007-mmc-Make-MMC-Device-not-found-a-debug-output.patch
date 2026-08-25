@@ -1,0 +1,52 @@
+From 0a2e835c8c90a01fe1a6663c183dd9d643456e9c Mon Sep 17 00:00:00 2001
+From: Jan Kiszka <jan.kiszka@siemens.com>
+Date: Fri, 21 Aug 2026 11:00:09 +0200
+Subject: [PATCH 7/7] mmc: Make "MMC Device not found" a debug output
+
+Callers of find_mmc_device are generally processing and informing about
+errors already, e.g.
+
+=> mmc dev 2
+MMC Device 2 not found
+no mmc device at slot 2
+
+Signed-off-by: Jan Kiszka <jan.kiszka@siemens.com>
+Reviewed-by: Tanmay Kathpalia <tanmay.kathpalia@altera.com>
+
+---
+CC: Peng Fan <peng.fan@nxp.com>
+CC: Jaehoon Chung <jh80.chung@samsung.com>
+---
+ drivers/mmc/mmc-uclass.c | 2 +-
+ drivers/mmc/mmc_legacy.c | 2 +-
+ 2 files changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/drivers/mmc/mmc-uclass.c b/drivers/mmc/mmc-uclass.c
+index 2f4dc5bd887..fe0ca88a72c 100644
+--- a/drivers/mmc/mmc-uclass.c
++++ b/drivers/mmc/mmc-uclass.c
+@@ -315,7 +315,7 @@ struct mmc *find_mmc_device(int dev_num)
+ 
+ 	if (ret) {
+ #if !defined(CONFIG_XPL_BUILD) || defined(CONFIG_SPL_LIBCOMMON_SUPPORT)
+-		printf("MMC Device %d not found\n", dev_num);
++		debug("MMC Device %d not found\n", dev_num);
+ #endif
+ 		return NULL;
+ 	}
+diff --git a/drivers/mmc/mmc_legacy.c b/drivers/mmc/mmc_legacy.c
+index 8f8ba34be71..2a4a8a83fb3 100644
+--- a/drivers/mmc/mmc_legacy.c
++++ b/drivers/mmc/mmc_legacy.c
+@@ -45,7 +45,7 @@ struct mmc *find_mmc_device(int dev_num)
+ 	}
+ 
+ #if !defined(CONFIG_XPL_BUILD) || defined(CONFIG_SPL_LIBCOMMON_SUPPORT)
+-	printf("MMC Device %d not found\n", dev_num);
++	debug("MMC Device %d not found\n", dev_num);
+ #endif
+ 
+ 	return NULL;
+-- 
+2.47.3
+

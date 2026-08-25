@@ -1,0 +1,34 @@
+From 9c5619a48894f01010b3af306f722727072b5873 Mon Sep 17 00:00:00 2001
+From: Jan Kiszka <jan.kiszka@siemens.com>
+Date: Fri, 21 Aug 2026 09:02:23 +0200
+Subject: [PATCH 5/7] tee: optee: Do not warn about
+ TEE_ERROR_STORAGE_NOT_AVAILABLE
+
+This is a transitional error that is resolved once an RPMB becomes
+available. Keep it as debug output only.
+
+Signed-off-by: Jan Kiszka <jan.kiszka@siemens.com>
+Reviewed-by: Ilias Apalodimas <ilias.apalodimas@linaro.org>
+---
+ drivers/tee/optee/core.c | 5 ++++-
+ 1 file changed, 4 insertions(+), 1 deletion(-)
+
+diff --git a/drivers/tee/optee/core.c b/drivers/tee/optee/core.c
+index e5dbbf00410..9bedc4e427d 100644
+--- a/drivers/tee/optee/core.c
++++ b/drivers/tee/optee/core.c
+@@ -112,7 +112,10 @@ static int __enum_services(struct udevice *dev, struct tee_shm *shm, size_t *shm
+ 
+ 	ret = tee_invoke_func(dev, &arg, 1, &param);
+ 	if (ret || (arg.ret && arg.ret != TEE_ERROR_SHORT_BUFFER)) {
+-		dev_err(dev, "Enumeration command 0x%x failed: 0x%x\n", pta_cmd, arg.ret);
++		if (arg.ret != TEE_ERROR_STORAGE_NOT_AVAILABLE)
++			dev_err(dev, "Enumeration command 0x%x failed: 0x%x\n", pta_cmd, arg.ret);
++		else
++			dev_dbg(dev, "Enumeration command 0x%x failed due to unavailable storage\n", pta_cmd);
+ 		return -EINVAL;
+ 	}
+ 
+-- 
+2.47.3
+

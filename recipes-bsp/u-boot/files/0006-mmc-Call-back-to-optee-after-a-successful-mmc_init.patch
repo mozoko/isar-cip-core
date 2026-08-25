@@ -1,0 +1,43 @@
+From 5344b42a1bbb74cead765f335c2ae07f4bdb1280 Mon Sep 17 00:00:00 2001
+From: Jan Kiszka <jan.kiszka@siemens.com>
+Date: Fri, 21 Aug 2026 08:49:05 +0200
+Subject: [PATCH 6/7] mmc: Call back to optee after a successful mmc_init
+
+This is needed to that OP-TEE can re-enumerate services which need RPMB
+access that may have become available now.
+
+Signed-off-by: Jan Kiszka <jan.kiszka@siemens.com>
+Reviewed-by: Peng Fan <peng.fan@nxp.com>
+Reviewed-by: Tanmay Kathpalia <tanmay.kathpalia@altera.com>
+---
+CC: Peng Fan <peng.fan@nxp.com>
+CC: Jaehoon Chung <jh80.chung@samsung.com>
+---
+ drivers/mmc/mmc.c | 4 ++++
+ 1 file changed, 4 insertions(+)
+
+diff --git a/drivers/mmc/mmc.c b/drivers/mmc/mmc.c
+index bf82c515600..51551135978 100644
+--- a/drivers/mmc/mmc.c
++++ b/drivers/mmc/mmc.c
+@@ -27,6 +27,7 @@
+ #include <linux/list.h>
+ #include <linux/printk.h>
+ #include <div64.h>
++#include <tee/optee.h>
+ #include "mmc_private.h"
+ 
+ #define DEFAULT_CMD6_TIMEOUT_MS  500
+@@ -3147,6 +3148,9 @@ int mmc_init(struct mmc *mmc)
+ 				mmc->cfg->name);
+ 	}
+ 
++	if (CONFIG_IS_ENABLED(OPTEE) && mmc->capacity_rpmb > 0)
++		optee_rpmb_available();
++
+ 	return err;
+ }
+ 
+-- 
+2.47.3
+
