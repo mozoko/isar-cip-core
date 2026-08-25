@@ -68,3 +68,19 @@ scan_for_partitions() {
     fi
     return 1
 }
+
+# check if system was securely booted via UEFI
+secure_boot_enabled() {
+    efivars=/sys/firmware/efi/efivars
+    if ! mountpoint -q $efivars; then
+        mount -t efivarfs none $efivars
+    fi
+
+    secure_boot="$efivars/SecureBoot-8be4df61-93ca-11d2-aa0d-00e098032b8c"
+    setup_mode="$efivars/SetupMode-8be4df61-93ca-11d2-aa0d-00e098032b8c"
+    if printf '\001' | cmp -s -i 4:0 $secure_boot &&
+       printf '\000' | cmp -s -i 4:0 $setup_mode; then
+        return 0
+    fi
+    return 1
+}
