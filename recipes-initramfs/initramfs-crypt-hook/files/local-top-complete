@@ -297,6 +297,10 @@ for partition_set in $partition_sets; do
 		continue
 	fi
 
+	if ! secure_boot_enabled; then
+		panic "Secure boot disabled! Must be enabled to ensure correct key sealing."
+	fi
+
 	# check if we are trying to mount root, set ROOT to decrypted partition:
 	if [ "$partition_mountpoint" = "/" ]; then
 		echo "ROOT=$decrypted_part" >/conf/param.conf
