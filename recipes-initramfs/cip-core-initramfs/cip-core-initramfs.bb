@@ -22,6 +22,7 @@ INITRAMFS_INSTALL:append:factory-reset = " initramfs-factory-reset-hook"
 INITRAMFS_INSTALL:append:ftpm-stmm = " initramfs-tee-ftpm-hook"
 INITRAMFS_INSTALL:append:swupdate = " initramfs-abrootfs-hook"
 INITRAMFS_INSTALL:append:swupdate = " initramfs-${RO_ROOTFS_TYPE}-hook"
+INITRAMFS_INSTALL:append:secureboot = " initramfs-sbcerts-hook"
 INITRAMFS_INSTALL:append:secureboot = " initramfs-verity-hook"
 # abrootfs cannot be installed together with verity
 INITRAMFS_INSTALL:remove:secureboot = "initramfs-abrootfs-hook"

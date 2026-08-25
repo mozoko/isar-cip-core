@@ -1,0 +1,16 @@
+#
+# CIP Core, generic profile
+#
+# Copyright (c) Siemens AG, 2026
+#
+# Authors:
+#  Jan Kiszka <jan.kiszka@siemens.com>
+#
+# SPDX-License-Identifier: MIT
+#
+
+copy_file binary /usr/share/secure-boot-efi-certs/db.auth
+copy_file binary /usr/share/secure-boot-efi-certs/KEK.auth
+copy_file binary /usr/share/secure-boot-efi-certs/PK.auth
+
+copy_file binary /usr/share/initramfs-sbcerts-hook/mount

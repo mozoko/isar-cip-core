@@ -1,0 +1,34 @@
+#
+# CIP Core, generic profile
+#
+# Copyright (c) Siemens AG, 2026
+#
+# Authors:
+#  Jan Kiszka <jan.kiszka@siemens.com>
+#
+# SPDX-License-Identifier: MIT
+#
+
+. /scripts/cip-initramfs-functions
+
+if secure_boot_enabled; then
+	exit 0
+fi
+
+ORIG_PATH="$PATH"
+export PATH="/usr/share/initramfs-sbcerts-hook:$PATH"
+
+if ! efi-readvar -v db | grep -q "has no entries"; then
+	export PATH="$ORIG_PATH"
+	log_warning_msg "Not securely booting, but certificates already deployed"
+	exit 0
+fi
+
+log_begin_msg "Deploying EFI secure boot certificates"
+efi-updatevar -f /usr/share/secure-boot-efi-certs/db.auth db
+efi-updatevar -f /usr/share/secure-boot-efi-certs/KEK.auth KEK
+efi-updatevar -f /usr/share/secure-boot-efi-certs/PK.auth PK
+log_end_msg
+
+log_success_msg "Rebooting after certificate deployment..."
+reboot
