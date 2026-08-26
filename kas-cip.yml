@@ -22,9 +22,13 @@ repos:
 
   isar:
     url: https://github.com/ilbers/isar.git
-    commit: 481db3b2e8949336576e50a78aaf5d101f52c8d2
+    commit: 436bc96f3869b4a139357afbabb039caf4df7c5c
     layers:
       meta:
+    patches:
+      p1:
+        path: isar-patches/0001-rootless-always-map-nobody-nogroup-as-dedicated-bloc.patch
+        repo: cip-core
 
 bblayers_conf_header:
   standard: |
