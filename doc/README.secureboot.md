@@ -273,31 +273,50 @@ lrwxrwxrwx 1 root root 0 Jun 30 13:20 sda5 -> ../../../../pci0000:00/0000:00:1f.
 Secureboot for a generic UEFI x86 target works similar to the QEMU target,
 except the enrollment of the secure boot keys.
 
-### Generate keys from Debian snakeoil keys
+### Generate keys from a single signing key
 
-For testing purposes, the snakeoil keys from OVMF package can be used to
-convert the certificate into a efi authority file use the following commands:
+The recipe `single-key-to-efi-certs` can be used to generate a Debian package
+that contains the required EFI certificates for enabling secure boot. It uses
+a single key/cert pair as basis. Unless otherwise configured, this pair will
+be taken from the corresponding Debian snakeoil set which is fine only for
+testing purposes. The package will contain the `.auth` files required for
+manual deployment:
 
-```bash
-cert-to-efi-sig-list recipes-devtools/secure-boot-secrets/files/bookworm/PkKek-1-snakeoil.pem PK.esl
-sign-efi-sig-list -k recipes-devtools/secure-boot-secrets/files/bookworm/PkKek-1-snakeoil.key -c recipes-devtools/secure-boot-secrets/files/bookworm/PkKek-1-snakeoil.pem PK PK.esl PK.auth
+```
+$ dpkg -c build/tmp/deploy/isar-apt/cip-core-trixie/apt/cip-core-trixie/pool/main/s/single-key-to-efi-certs/single-key-to-efi-certs_0.1_arm64.deb
+[...]
+-rw-r--r-- root/root      2549 1970-01-01 02:00 ./usr/share/secure-boot-efi-certs/KEK.auth
+-rw-r--r-- root/root      2549 1970-01-01 02:00 ./usr/share/secure-boot-efi-certs/PK.auth
+-rw-r--r-- root/root      2549 1970-01-01 02:00 ./usr/share/secure-boot-efi-certs/db.auth
 ```
 
-The package `efitools` needs to be installed for this.
+### Automatic secure boot certificate enrollment
 
-In this case, the PK.esl can be used as DB and KEK keys. The PK.auth file is for PK key.
+By default, isar-cip-core images contain an early boot service
+(initramfs-sbcerts-hook) which will deploy the required EFI certificates during
+first boot and restart the machine into secure boot afterwards. This will only
+happen when the machine is in Setup Mode and no other certificates have been
+deployed to the Allowed Signature Database yet. This also ensures that disk
+encryption on first boot will only take place when the machine was securely
+booted so that the encryption key is sealed against this state in the TPM.
 
-### Secure boot key enrollment
+The certificates needed for this auto-enrollment are taken from a package that
+provides `secure-boot-efi-certs`. The `single-key-to-efi-certs` package is the
+default provider of this in isar-cip-core.
+
+### Manual secure boot certificate enrollment
 
 > :exclamation:**IMPORTANT** This document is not for generating a Machine Owner Key(MOK).
 
 > :exclamation:**IMPORTANT** Enrollment of secure boot keys must occur
 > in a secure environment.
 
-The following keys need to be enrolled onto the device:
+The certificates for the following keys need to be enrolled onto the device:
  - The Platform Key (PK)
  - The Key Exchange Key (KEK)
  - Allowed Signatures Database
+
+You can obtain them from the single-key-to-efi-certs package described before.
 
 The enrollment can typically be achieved with the help of
 [efi-updatevar](https://manpages.debian.org/bookworm/efitools/efi-updatevar.1.en.html)
