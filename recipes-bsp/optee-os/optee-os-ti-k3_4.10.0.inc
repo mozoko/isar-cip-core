@@ -30,6 +30,3 @@ OPTEE_EXTRA_BUILDARGS += " \
 	"
 
 DEBIAN_BUILD_DEPENDS += ", device-tree-compiler, python3-cryptography:native"
-
-OPTEE_ENABLE_APPS ?= "1"
-OVERRIDES .= "${@':optee-with-apps' if bb.utils.to_boolean(d.getVar("OPTEE_ENABLE_APPS")) else ''}"

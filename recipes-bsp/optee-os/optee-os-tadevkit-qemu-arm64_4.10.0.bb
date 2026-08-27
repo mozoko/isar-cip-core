@@ -11,6 +11,4 @@
 
 inherit optee-os-tadevkit
 
-OPTEE_ENABLE_APPS = "0"
-
 require optee-os-qemu-arm64_${PV}.inc

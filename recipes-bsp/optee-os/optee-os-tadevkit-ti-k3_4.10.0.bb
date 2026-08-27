@@ -9,6 +9,4 @@
 
 inherit optee-os-tadevkit
 
-OPTEE_ENABLE_APPS = "0"
-
 require optee-os-ti-k3_${PV}.inc

@@ -25,21 +25,3 @@ OPTEE_EXTRA_BUILDARGS = " \
     CFG_REE_FS=n CFG_CORE_HEAP_SIZE=524288 CFG_RPMB_FS=y \
     CFG_RPMB_WRITE_KEY=y CFG_RPMB_TESTKEY=y \
     "
-
-OPTEE_ENABLE_APPS ?= "1"
-OVERRIDES .= "${@':optee-with-apps' if bb.utils.to_boolean(d.getVar("OPTEE_ENABLE_APPS")) else ''}"
-
-# StMM integration, required by UEFI auth variable management
-DEPENDS:append:optee-with-apps = " edk2-standalonemm-rpmb"
-DEBIAN_BUILD_DEPENDS:append:optee-with-apps = ", edk2-standalonemm-rpmb"
-OPTEE_EXTRA_BUILDARGS:append:optee-with-apps = " \
-    CFG_STMM_PATH=/usr/lib/edk2/BL32_AP_MM.fd \
-    "
-
-# OP-TEE fTPM integration
-DEPENDS:append:optee-with-apps = " optee-ftpm-${OPTEE_NAME}"
-DEBIAN_BUILD_DEPENDS:append:optee-with-apps = ", optee-ftpm-${OPTEE_NAME}"
-FTPM_UUID = "bc50d971-d4c9-42c4-82cb-343fb7f37896"
-OPTEE_EXTRA_BUILDARGS:append:optee-with-apps = " \
-    EARLY_TA_PATHS=/usr/lib/optee-os/${OPTEE_NAME}/ta/${FTPM_UUID}.stripped.elf \
-    "

@@ -1,7 +1,7 @@
 #
 # CIP Core, generic profile
 #
-# Copyright (c) Siemens AG, 2025
+# Copyright (c) Siemens AG, 2025-2026
 #
 # Authors:
 #  Jan Kiszka <jan.kiszka@siemens.com>
@@ -12,3 +12,4 @@
 inherit optee-os
 
 require optee-os-qemu-arm64_${PV}.inc
+require optee-os-ftpm-stmm.inc
