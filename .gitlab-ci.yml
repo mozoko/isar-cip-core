@@ -934,11 +934,13 @@ include: '.reproducible-check-ci.yml'
 
 lavacli-container:
   stage: build
-  image: quay.io/buildah/stable:v1.41.4
+  image: quay.io/buildah/stable:v1.43.2
+  variables:
+    STORAGE_DRIVER: vfs
   tags:
-    - large-rootless
+    - small
   before_script:
-    - buildah login -u $CI_REGISTRY_USER --password $CI_REGISTRY_PASSWORD $CI_REGISTRY
+    - echo $CI_REGISTRY_PASSWORD | buildah login -u $CI_REGISTRY_USER --password-stdin $CI_REGISTRY
   script:
     - buildah build -f scripts/Dockerfile.lavacli -t $CI_REGISTRY_IMAGE/lavacli .
     - buildah push $CI_REGISTRY_IMAGE/lavacli
