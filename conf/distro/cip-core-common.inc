@@ -30,3 +30,4 @@ PREFERRED_VERSION_linux-cip-rt-kbuildtarget ?= "${PREFERRED_VERSION_linux-cip-rt
 TEE_SUPPLICANT_IN_USERLAND ?= "0"
 
 PREFERRED_PROVIDER_factory-reset-helper ?= "factory-reset-helper-file"
+PREFERRED_PROVIDER_factory-reset-helper:ftpm-stmm = "factory-reset-helper-efi"
