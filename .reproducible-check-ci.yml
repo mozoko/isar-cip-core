@@ -51,7 +51,7 @@
 
 .repro-test:
   image:
-    name: debian:bullseye
+    name: debian:stable
   tags:
     - large
   stage: test
