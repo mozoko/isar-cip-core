@@ -52,4 +52,4 @@ do_generate_image_uuid() {
     echo "TARGET_IMAGE_UUID=\"${IMAGE_UUID}\"" \
         > "${DEPLOY_DIR_IMAGE}/${IMAGE_FULLNAME}.uuid.env"
 }
-addtask generate_image_uuid before do_rootfs_finalize after do_rootfs_postprocess
+addtask generate_image_uuid before do_rootfs_finalize after do_rootfs_install
