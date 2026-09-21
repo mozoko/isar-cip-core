@@ -2,6 +2,31 @@
 #
 # SPDX-License-Identifier: MIT
 #
+
+# Setup GPG keys before processing
+setup_gpg_keys() {
+    local GPG_KEY_EMAIL="autosigner@kernel.org"
+
+    # Check if GPG is installed
+    if ! command -v gpg &> /dev/null; then
+        echo "Error: GPG is not installed."
+        echo "GPG is required to verify the authenticity of kernel sources."
+        echo ""
+        echo "Please install GPG and run the script again:"
+        echo "  sudo apt-get update"
+        echo "  sudo apt-get install gnupg"
+        exit 1
+    fi
+
+    # Check if key is already imported
+    if ! gpg --list-keys "${GPG_KEY_EMAIL}" &>/dev/null; then
+        echo "Importing GPG key for ${GPG_KEY_EMAIL}..."
+        gpg --locate-keys "${GPG_KEY_EMAIL}" &>/dev/null
+    fi
+}
+# Setup GPG keys
+setup_gpg_keys
+
 REPO_ROOT=$(git rev-parse --show-toplevel)
 pushd "${REPO_ROOT}"/recipes-kernel/linux >/dev/null || exit 1
 
