@@ -16,6 +16,7 @@ inherit linux-kernel
 MAINTAINER = "cip-dev <cip-dev@lists.cip-project.org>"
 
 require recipes-kernel/linux/cip-kernel-config.inc
+require recipes-kernel/linux/kernel-hardening.inc
 
 KERNEL_CONFIG_FRAGMENTS:append = "${@(' ' + d.getVar('RT_FRAGMENT')) if d.getVar('KERNEL_NAME') == 'cip-rt' else ''}"
 
