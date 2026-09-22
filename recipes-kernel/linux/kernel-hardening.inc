@@ -14,3 +14,5 @@ do_dpkg_source[depends] += "${@'cip-cis-rules-config:do_deploy_hardening' if bb.
 do_dpkg_source:prepend:kernel-hardening() {
     cp ${DEPLOY_DIR_IMAGE}/${CIP_CIS_HARDENING_KCONFIG} ${WORKDIR}/hardening.kernel.cfg
 }
+
+inherit_defer ${@'cis-kernel-hardening-validation' if bb.utils.to_boolean(d.getVar('CIP_CIS_HARDENING')) and bb.utils.to_boolean(d.getVar('CIP_CIS_HARDENING_VALIDATION')) else ''}
