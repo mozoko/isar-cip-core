@@ -19,7 +19,12 @@ DESCRIPTION = "Signing script for EFI Boot Guard setups"
 DEPENDS = "secure-boot-secrets"
 DEBIAN_DEPENDS = "sbsigntool, secure-boot-secrets, faketime"
 
-SRC_URI = "file://sign_secure_image.sh"
+SRC_URI = "file://sign_secure_image.sh.tmpl"
+
+inherit secure-boot-timestamp
+
+TEMPLATE_FILES += "sign_secure_image.sh.tmpl"
+TEMPLATE_VARS += "SECURE_BOOT_TIMESTAMP"
 
 do_install() {
     TARGET=${D}/usr/bin
