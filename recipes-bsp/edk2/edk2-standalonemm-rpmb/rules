@@ -41,20 +41,20 @@ export PATH=$(WORKSPACE)/edk2/BaseTools/Bin/Linux-$(TARGET_ARCH):$(WORKSPACE)/ed
 # the default `gcc`, we additionally need to inform the
 # build command which toolchain to use. We do this by setting the environment
 # variable `{TOOL_CHAIN_TAG}_{TARGET_ARCH}_PREFIX` - in the case above,
-# **GCC5_AARCH64_PREFIX**.
-# export GCC5_AARCH64_PREFIX=aarch64-linux-gnu-
+# **GCC_AARCH64_PREFIX**.
+# export GCC_AARCH64_PREFIX=aarch64-linux-gnu-
 # using export here at TOP Level does not work, because
-# GCC5_$(TARGET_ARCH)_PREFIX gets deleted again for what reason ever
+# GCC_$(TARGET_ARCH)_PREFIX gets deleted again for what reason ever
 # Therefore it is set right before the build command
-# export GCC5_$(TARGET_ARCH)_PREFIX=$(DEB_HOST_GNU_TYPE)-
+# export GCC_$(TARGET_ARCH)_PREFIX=$(DEB_HOST_GNU_TYPE)-
 
 override_dh_auto_build:
 	source edk2/edksetup.sh --reconfig
 
 	CFLAGS= LDFLAGS= $(MAKE) $(PARALLEL_MAKE) -C edk2/BaseTools
 
-	(export GCC5_$(TARGET_ARCH)_PREFIX=$(DEB_HOST_GNU_TYPE)- && \
-		build -p $(ACTIVE_PLATFORM) -b RELEASE -a $(TARGET_ARCH) -t GCC5 -n $(shell nproc))
+	(export GCC_$(TARGET_ARCH)_PREFIX=$(DEB_HOST_GNU_TYPE)- && \
+		build -p $(ACTIVE_PLATFORM) -b RELEASE -a $(TARGET_ARCH) -t GCC -n $(shell nproc))
 
 override_dh_auto_install:
 

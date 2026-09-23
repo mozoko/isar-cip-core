@@ -1,7 +1,7 @@
 #
 # CIP Core, generic profile
 #
-# Copyright (c) Siemens AG, 2022-2025
+# Copyright (c) Siemens AG, 2022-2026
 #
 # Authors:
 #  Sven Schultschik <sven.schultschik@siemens.com>
@@ -25,28 +25,28 @@ SRC_URI = " \
     https://github.com/MIPI-Alliance/public-mipi-sys-t/archive/${SRCREV-mipisyst}.tar.gz;name=mipisyst;downloadfilename=mipisyst-${SRCREV-mipisyst}.tar.gz;subdir=${S} \
     https://github.com/openssl/openssl/archive/refs/tags/${PV-openssl}.tar.gz;name=openssl;subdir=${S} \
     https://github.com/Mbed-TLS/mbedtls/archive/${PV-mbedtls}.tar.gz;name=mbedtls;subdir=${S} \
-    https://github.com/DMTF/libspdm/archive/refs/tags/${PV-libspdm}.tar.gz;name=libspdm;downloadfilename=libspdm-${PV-libspdm}.tar.gz;subdir=${S} \
+    https://github.com/DMTF/libspdm/archive/${SRCREV-libspdm}.tar.gz;name=libspdm;downloadfilename=libspdm-${SRCREV-libspdm}.tar.gz;subdir=${S} \
+    file://0001-Limit-pointer-constraint-to-clang.patch;patchdir=${S}/mbedtls-${PV-mbedtls} \
     file://rules \
     "
-SRC_URI[sha256sum] = "5f2b5e3a267230f82e4566592fd0bfac5e205ad90520b2c9bf80f575293b7015"
-SRC_URI[edk2-platforms.sha256sum] = "0a266a61732d8dbb95bd2a4c0bf64a91965728b9fcd567af6af0894f23da0f97"
-SRC_URI[brotli.sha256sum] = "aaa739962a45b508b2e783b915e6b2b57ed3b12bd4b0feac73acfb144dffa54f"
+SRC_URI[sha256sum] = "bac40812213576c3025cf780c33d882f9e087a44201b1cd28a07f6d1eb54b76a"
+SRC_URI[edk2-platforms.sha256sum] = "c58167ae3f2c1787c781b74777d2084276b982ea8ad0f517a46a05f31925ccf7"
+SRC_URI[brotli.sha256sum] = "a9ba3940267de5dd73581a47c2e81b3eb1e1df6a704138c599020d66f3677a92"
 SRC_URI[mipisyst.sha256sum] = "9fda3b9a78343ab2be6f06ce6396536e7e065abac29b47c8eb2e42cbb4c4f00b"
-SRC_URI[openssl.sha256sum] = "d4b22527a645acf76b53e44487a8db687c6eed621d7246891d025e38ba8c9651"
-SRC_URI[mbedtls.sha256sum] = "a22ff38512697b9cd8472faa2ea2d35e320657f6d268def3a64765548b81c3ec"
-SRC_URI[libspdm.sha256sum] = "dfadf501d23c26041c921974971953a1d4a250ed6cd2679facb781471a5f944c"
+SRC_URI[openssl.sha256sum] = "d71a811bfbd9153d7b30cbe476263302ee4b04a9a47ffea6e6a782326805c93f"
+SRC_URI[mbedtls.sha256sum] = "de654c64688d0f6c71caf7336010e1fb54070e6e3d1df3999ee432ab59d0dbde"
+SRC_URI[libspdm.sha256sum] = "a815aa38874d2c82255f379a7ee1eb07cccbb439a7788ff14316fce52d61a516"
 
 # according to edk2 submodules
-SRCREV-brotli = "ed738e842d2fbdf2d6459e39267a633c4a9b2f5d"
+SRCREV-brotli = "e230f474b87134e8c6c85b630084c612057f253e"
 SRCREV-mipisyst = "370b5944c046bab043dd8b133727b2135af7747a"
+SRCREV-libspdm = "f55cf6d48ec69b4ac60a63903e9c6a2cb0fd155d"
 
 # revision closest to edk2 release
-SRCREV-edk2-platforms = "cf63a7257a0a12044b4530904835427813855f4f"
+SRCREV-edk2-platforms = "f8dbb5c603302dc661f572b560bdb34f7db6edb5"
 
-PV-openssl = "openssl-3.4.1"
-PV-mbedtls = "mbedtls-3.3.0"
-PV-libspdm = "3.6.0"
-
+PV-openssl = "openssl-3.5.7"
+PV-mbedtls = "mbedtls-3.6.6"
 
 DEBIAN_BUILD_DEPENDS = "bash, python3:native, dh-python, uuid-dev:native"
 
@@ -75,8 +75,8 @@ do_prepare_build() {
     ln -s ../../../../mbedtls-${PV-mbedtls} ${S}/edk2/CryptoPkg/Library/MbedTlsLib/mbedtls
 
     rm -rf ${S}/edk2/SecurityPkg/DeviceSecurity/SpdmLib/libspdm
-    ln -s ../../../../libspdm-${PV-libspdm} ${S}/edk2/SecurityPkg/DeviceSecurity/SpdmLib/libspdm
+    ln -s ../../../../libspdm-${SRCREV-libspdm} ${S}/edk2/SecurityPkg/DeviceSecurity/SpdmLib/libspdm
 
-    echo "Build/MmStandaloneRpmb/RELEASE_GCC5/FV/BL32_AP_MM.fd /usr/lib/edk2/" > \
+    echo "Build/MmStandaloneRpmb/RELEASE_GCC/FV/BL32_AP_MM.fd /usr/lib/edk2/" > \
         ${S}/debian/edk2-standalonemm-rpmb.install
 }

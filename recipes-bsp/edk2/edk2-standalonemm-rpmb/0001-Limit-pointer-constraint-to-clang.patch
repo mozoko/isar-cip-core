@@ -1,0 +1,33 @@
+From 80f4bf6c80dadb1c5322e91097829993e62cb0fd Mon Sep 17 00:00:00 2001
+From: Jan Kiszka <jan.kiszka@siemens.com>
+Date: Wed, 23 Sep 2026 17:27:58 +0200
+Subject: [PATCH] Limit pointer constraint to clang
+
+Using "p" does not work with gcc-16 / binutils 2.47 as found in Debian
+forky right now.
+
+Signed-off-by: Jan Kiszka <jan.kiszka@siemens.com>
+---
+ library/common.h | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/library/common.h b/library/common.h
+index 1f59b32426..3cede9cab4 100644
+--- a/library/common.h
++++ b/library/common.h
+@@ -380,10 +380,10 @@ static inline void mbedtls_xor_no_simd(unsigned char *r,
+  * Note that the "x" in "%x0" is neccessary; writing "%0" will cause warnings.
+  */
+ #if defined(__aarch64__) && defined(MBEDTLS_HAVE_ASM)
+-#if UINTPTR_MAX == 0xfffffffful
++#if UINTPTR_MAX == 0xfffffffful && defined(__clang__)
+ /* ILP32: Specify the pointer operand slightly differently, as per #7787. */
+ #define MBEDTLS_ASM_AARCH64_PTR_CONSTRAINT "p"
+-#elif UINTPTR_MAX == 0xfffffffffffffffful
++#elif UINTPTR_MAX == 0xfffffffffffffffful || !defined(__clang__)
+ /* Normal case (64-bit pointers): use "r" as the constraint for pointer operands to asm */
+ #define MBEDTLS_ASM_AARCH64_PTR_CONSTRAINT "r"
+ #else
+-- 
+2.47.3
+
