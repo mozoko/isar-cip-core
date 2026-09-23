@@ -22,6 +22,8 @@ DEBIAN_BUILD_DEPENDS .= ", secure-boot-secrets, efitools"
 
 DPKG_ARCH = "all"
 
+inherit secure-boot-timestamp
+
 do_prepare_build() {
     deb_debianize
 
@@ -35,7 +37,7 @@ EOF
 
 override_dh_auto_build:
 	cert-to-efi-sig-list /usr/share/secure-boot-secrets/secure-boot.pem PK.esl
-	sign-efi-sig-list -k /usr/share/secure-boot-secrets/secure-boot.key \
+	TZ=UTC sign-efi-sig-list -t '${SECURE_BOOT_TIMESTAMP}' -k /usr/share/secure-boot-secrets/secure-boot.key \
 	    -c /usr/share/secure-boot-secrets/secure-boot.pem PK PK.esl PK.auth
 	cp PK.auth KEK.auth
 	cp PK.auth db.auth
