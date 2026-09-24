@@ -33,7 +33,10 @@ wait_30sec_for_condition check_partitions
 
 if /usr/sbin/get-factory-reset.sh --delete | grep -q "factory-reset"; then
     log_begin_msg "Factory Reset"
+    # service watchdog in the background during lengthy disk wiping
+    start_watchdog "${WATCHDOG_DEV}" "${SETUP_TIMEOUT}"
     for target in ${target_devices}; do
+        wipedisk="false"
         target_device="$target"
         log_begin_msg "Reset device: $target_device"
         fs_type=$(get_fstype "${target_device}")
@@ -48,6 +51,7 @@ if /usr/sbin/get-factory-reset.sh --delete | grep -q "factory-reset"; then
                 fi
                 ;;
         esac
+
         if [ "$fs_type" = "luks" ]; then
             if [ "${INITRAMFS_FACTORY_RESET_CLEAR_TPM_BOOL}" = "1" ]; then
                 # after this the data on the encrypted partition
@@ -59,9 +63,23 @@ if /usr/sbin/get-factory-reset.sh --delete | grep -q "factory-reset"; then
             else
                 target_device=$(find /dev/mapper -iname "*$label")
                 fs_type=$(get_fstype "${target_device}")
-                echo "luks device detected use $target_device"
+                log_success_msg "luks device detected use $target_device"
+                wipedisk="true"
             fi
+        else
+            wipedisk="true"
         fi
+
+        if [ "${wipedisk}" = "true" ]; then
+            log_begin_msg "Clear device $target_device"
+            device_size=$(blockdev --getsz "${target_device}")
+            if ! dd if=/dev/zero of="${target_device}" bs=512 \
+                    count="${device_size}" conv=fsync; then
+                log_warning_msg "Could not clear partition $target_device"
+            fi
+            log_end_msg "Finished clearing device $target_device"
+        fi
+
         case ${fs_type} in
             ext*)
                 /sbin/mke2fs -L "${label}" -F -t ext4 "${target_device}"
@@ -77,3 +95,4 @@ if /usr/sbin/get-factory-reset.sh --delete | grep -q "factory-reset"; then
     done
     log_end_msg "Factory Reset"
 fi
+stop_watchdog

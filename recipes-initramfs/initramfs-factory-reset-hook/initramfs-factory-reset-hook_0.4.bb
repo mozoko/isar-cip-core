@@ -20,6 +20,12 @@ INITRAMFS_FACTORY_RESET_LUKS_FORMAT_TYPE ??= "ext4"
 INITRAMFS_FACTORY_RESET_CLEAR_TPM ??= '0'
 INITRAMFS_FACTORY_RESET_CLEAR_TPM:encrypt-partitions ?= '1'
 INITRAMFS_FACTORY_RESET_CLEAR_TPM_BOOL = "${@ '1' if bb.utils.to_boolean(d.getVar('INITRAMFS_FACTORY_RESET_CLEAR_TPM')) else '0'}"
+# Timeout in seconds for wiping the partitions during factory reset,
+# defaults to INITRAMFS_SETUP_TIMEOUT or 600 if that is unset
+INITRAMFS_FACTORY_RESET_TIMEOUT ?= "${@ d.getVar('INITRAMFS_SETUP_TIMEOUT') or 600}"
+# Watchdog to service during the factory reset,
+# the default is set in the distro configuration
+INITRAMFS_WATCHDOG_DEVICE ??= ""
 
 # to support factory reset on btrfs, add 'btrfs'
 INITRAMFS_FACTORY_RESET_FSTYPES = "${INITRAMFS_FACTORY_RESET_LUKS_FORMAT_TYPE}"
@@ -34,7 +40,9 @@ FACTORY_RESET_HOOK_TARGET = "${@ 'local-top' if bb.utils.to_boolean(d.getVar('IN
 TEMPLATE_FILES += "reset-env.tmpl factory-reset-script.tmpl"
 TEMPLATE_VARS += " INITRAMFS_FACTORY_RESET_DEVICES \
                    INITRAMFS_FACTORY_RESET_LUKS_FORMAT_TYPE \
-                   INITRAMFS_FACTORY_RESET_CLEAR_TPM_BOOL"
+                   INITRAMFS_FACTORY_RESET_CLEAR_TPM_BOOL \
+                   INITRAMFS_WATCHDOG_DEVICE \
+                   INITRAMFS_FACTORY_RESET_TIMEOUT"
 
 RDEPENDS = "factory-reset-helper \
             initramfs-cip-functions"
@@ -42,9 +50,9 @@ RDEPENDS = "factory-reset-helper \
 DEBIAN_DEPENDS .= ", coreutils, util-linux, e2fsprogs, awk, \
                     factory-reset-helper, findutils, initramfs-cip-functions"
 DEBIAN_DEPENDS:append:encrypt-partitions = ", tpm2-tools"
-HOOK_COPY_EXECS = "mountpoint findmnt mktemp basename \
+HOOK_COPY_EXECS = "mountpoint findmnt mktemp basename dd \
                    mke2fs awk blkid rm get-factory-reset.sh \
-                   chattr grep find"
+                   chattr grep find blockdev seq"
 HOOK_COPY_EXECS:append:encrypt-partitions = " tpm2_clear"
 
 OVERRIDES .= "${@':btrfs-support' if 'btrfs' in d.getVar('INITRAMFS_FACTORY_RESET_FSTYPES') else ''}"
