@@ -124,6 +124,13 @@ build:hihope-rzg2m-base:
     target: hihope-rzg2m
     dtb: r8a774a1-hihope-rzg2m-ex.dtb
 
+build:rzt2h-evk-base:
+  extends:
+    - .build_base
+  variables:
+    target: rzt2h-evk
+    dtb: r9a09g077m44-rzt2h-evk.dtb
+
 build:qemu-amd64-base:
   extends:
     - .build_base
@@ -197,6 +204,14 @@ build:hihope-rzg2m-test:
     target: hihope-rzg2m
     extension: test
     dtb: r8a774a1-hihope-rzg2m-ex.dtb
+
+build:rzt2h-evk-test:
+  extends:
+    - .build_base
+  variables:
+    target: rzt2h-evk
+    extension: test
+    dtb: r9a09g077m44-rzt2h-evk.dtb
 
 build:qemu-amd64-test-nokernel:
   extends:
