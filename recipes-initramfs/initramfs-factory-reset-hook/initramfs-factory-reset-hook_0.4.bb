@@ -1,7 +1,7 @@
 #
 # CIP Core, generic profile
 #
-# Copyright (c) Siemens AG, 2025
+# Copyright (c) Siemens AG, 2025 - 2026
 #
 # Authors:
 #  Quirin Gylstorff <quirin.gylstorff@siemens.com>
@@ -19,6 +19,7 @@ INITRAMFS_FACTORY_RESET_DEVICES ??= "/dev/disk/by-partlabel/var"
 INITRAMFS_FACTORY_RESET_LUKS_FORMAT_TYPE ??= "ext4"
 INITRAMFS_FACTORY_RESET_CLEAR_TPM ??= '0'
 INITRAMFS_FACTORY_RESET_CLEAR_TPM:encrypt-partitions ?= '1'
+INITRAMFS_FACTORY_RESET_CLEAR_TPM_BOOL = "${@ '1' if bb.utils.to_boolean(d.getVar('INITRAMFS_FACTORY_RESET_CLEAR_TPM')) else '0'}"
 
 # to support factory reset on btrfs, add 'btrfs'
 INITRAMFS_FACTORY_RESET_FSTYPES = "${INITRAMFS_FACTORY_RESET_LUKS_FORMAT_TYPE}"
@@ -33,7 +34,7 @@ FACTORY_RESET_HOOK_TARGET = "${@ 'local-top' if bb.utils.to_boolean(d.getVar('IN
 TEMPLATE_FILES += "reset-env.tmpl factory-reset-script.tmpl"
 TEMPLATE_VARS += " INITRAMFS_FACTORY_RESET_DEVICES \
                    INITRAMFS_FACTORY_RESET_LUKS_FORMAT_TYPE \
-                   INITRAMFS_FACTORY_RESET_CLEAR_TPM"
+                   INITRAMFS_FACTORY_RESET_CLEAR_TPM_BOOL"
 
 RDEPENDS = "factory-reset-helper \
             initramfs-cip-functions"
