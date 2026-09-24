@@ -90,12 +90,14 @@ CRYPT_PARTITIONS ??= "var:/var:reencrypt"
 # CRYPT_CREATE_FILE_SYSTEM_CMD contains the shell command to create the filesystem
 # in a newly formatted LUKS Partition
 CRYPT_CREATE_FILE_SYSTEM_CMD ??= "/usr/sbin/mke2fs -t ext4"
-# Timeout for creating / re-encrypting partitions on first boot
-CRYPT_SETUP_TIMEOUT ??= "600"
-# Watchdog to service during the initial setup of the crypto partitions
-INITRAMFS_WATCHDOG_DEVICE ??= "${@'/dev/watchdog' \
-    if int(d.getVar('WDOG_TIMEOUT') or 0) > 0 \
-        or 'ftpm-stmm' in d.getVar('OVERRIDES').split(':') else ''}"
+# Timeout in seconds for creating / re-encrypting partitions on first boot.
+# Defaults to INITRAMFS_SETUP_TIMEOUT, which applies to all initramfs
+# hooks servicing the watchdog, or 600 if that is unset. Set
+# CRYPT_SETUP_TIMEOUT to use a task specific timeout.
+CRYPT_SETUP_TIMEOUT ?= "${@ d.getVar('INITRAMFS_SETUP_TIMEOUT') or 600}"
+# Watchdog to service during the initial setup of the crypto partitions,
+# the default is set in the distro configuration
+INITRAMFS_WATCHDOG_DEVICE ??= ""
 # clevis needs tpm hash algorithm type
 CRYPT_HASH_TYPE ??= "sha256"
 CRYPT_KEY_ALGORITHM ??= "ecc"

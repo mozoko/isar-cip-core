@@ -1,7 +1,7 @@
 #
 # CIP Core, generic profile
 #
-# Copyright (c) Siemens AG, 2019-2025
+# Copyright (c) Siemens AG, 2019-2026
 #
 # Authors:
 #  Jan Kiszka <jan.kiszka@siemens.com>
@@ -31,3 +31,10 @@ TEE_SUPPLICANT_IN_USERLAND ?= "0"
 
 PREFERRED_PROVIDER_factory-reset-helper ?= "factory-reset-helper-file"
 PREFERRED_PROVIDER_factory-reset-helper:ftpm-stmm = "factory-reset-helper-efi"
+
+# Watchdog to service by initramfs hooks during lengthy operations like
+# partition encryption or factory reset. In our integration, enabling
+# fTPM/StMM implies a U-Boot-based firmware which may enable a watchdog early.
+INITRAMFS_WATCHDOG_DEVICE ?= "${@'/dev/watchdog' \
+    if int(d.getVar('WDOG_TIMEOUT') or 0) > 0 \
+        or 'ftpm-stmm' in d.getVar('OVERRIDES').split(':') else ''}"

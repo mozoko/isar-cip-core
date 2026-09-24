@@ -2,7 +2,7 @@
 #
 # CIP Core, generic profile
 #
-# Copyright (c) Siemens AG, 2025
+# Copyright (c) Siemens AG, 2025 - 2026
 #
 # Authors:
 #  Quirin Gylstorff <quirin.gylstorff@siemens.com>
@@ -83,4 +83,38 @@ secure_boot_enabled() {
         return 0
     fi
     return 1
+}
+
+service_watchdog() {
+    watchdog_dev="$1"
+    setup_timeout="$2"
+    if [ ! -e "$watchdog_dev" ]; then
+        panic "Could not find '$watchdog_dev' - Please check your kernel configuration."
+    fi
+    for _ in $(seq $((setup_timeout / 10)) ); do
+        printf '\0'
+        sleep 10
+    done > "$watchdog_dev"
+}
+
+# start_watchdog and stop_watchdog share $watchdog_pid via the shell
+# environment, so both have to be called from the same script.
+start_watchdog() {
+    if [ -z "$1" ] || [ -z "$2" ]; then
+        log_warning_msg "Watchdog is disabled."
+        return 0
+    fi
+    if [ -z "$watchdog_pid" ]; then
+        service_watchdog "$1" "$2" &
+        watchdog_pid=$!
+    fi
+}
+
+stop_watchdog() {
+    if [ -n "$watchdog_pid" ]; then
+        while kill -9 "$watchdog_pid" 2>/dev/null; do
+            sleep 1
+        done
+        watchdog_pid=""
+    fi
 }

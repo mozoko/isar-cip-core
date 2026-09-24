@@ -63,20 +63,6 @@ if [ -z "${create_file_system_cmd}" ]; then
 	create_file_system_cmd="mke2fs -t ext4"
 fi
 
-service_watchdog() {
-	if [ -n "$WATCHDOG_DEV" ]; then
-		if [ ! -e "$WATCHDOG_DEV" ]; then
-			panic "Could not find '$WATCHDOG_DEV' - Please check your kernel configuration."
-		fi
-		for n in $(seq $(($SETUP_TIMEOUT / 10)) ); do
-			printf '\0'
-			sleep 10
-		done > "$WATCHDOG_DEV"
-	else
-		echo "Watchdog is disabled."
-	fi
-}
-
 check_partitions()
 {
 	found=0
@@ -307,10 +293,7 @@ for partition_set in $partition_sets; do
 	fi
 
 	# service watchdog in the background during lengthy re-encryption
-	if [ -z "$watchdog_pid" ]; then
-		service_watchdog &
-		watchdog_pid=$!
-	fi
+	start_watchdog "${WATCHDOG_DEV}" "${SETUP_TIMEOUT}"
 
 	# Create random password, store it in the tpm2, sealed via PCR:7,
 	# to allow continuing reencryption in case of power-failure.
@@ -374,6 +357,4 @@ if [ -x /usr/bin/tpm2_shutdown ]; then
 	tpm2_shutdown -c
 fi
 
-if [ -n "$watchdog_pid" ]; then
-	kill "$watchdog_pid"  > /dev/null 2>&1
-fi
+stop_watchdog
