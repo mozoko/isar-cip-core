@@ -17,7 +17,7 @@ check_partitions()
 {
     found=0
     for partition in ${INITRAMFS_FACTORY_RESET_DEVICES}; do
-        if blkid | grep -q "$(basename $partition)"; then
+        if blkid | grep -q "$(basename "$partition")"; then
             found=$((found + 1))
         fi
     done
@@ -34,16 +34,17 @@ wait_30sec_for_condition check_partitions
 if /usr/sbin/get-factory-reset.sh --delete | grep -q "factory-reset"; then
     log_begin_msg "Factory Reset"
     for target in ${target_devices}; do
-        log_begin_msg "Reset device: $target"
-        fs_type=$(get_fstype "${target}")
-        case "$target" in
+        target_device="$target"
+        log_begin_msg "Reset device: $target_device"
+        fs_type=$(get_fstype "${target_device}")
+        case "$target_device" in
             *by-partlabel*)
-                label="$(basename "${target}" )"
+                label="$(basename "${target_device}" )"
                 ;;
             *)
-                label=$(blkid --match-tag LABEL "$target" | awk -F= '{gsub(/"/,"");print $2}' )
+                label=$(blkid --match-tag LABEL "$target_device" | awk -F= '{gsub(/"/,"");print $2}' )
                 if [ -z "${label}" ]; then
-                    log_warning_msg "Could not find any label  for target '$target'"
+                    log_warning_msg "Could not find any label for target '$target_device'"
                 fi
                 ;;
         esac
@@ -56,23 +57,23 @@ if /usr/sbin/get-factory-reset.sh --delete | grep -q "factory-reset"; then
                 # use a variable from the reset-env to set it
                 fs_type="$INITRAMFS_FACTORY_RESET_LUKS_FORMAT_TYPE"
             else
-                target=$(find /dev/mapper -iname "*$label")
-                fs_type=$(get_fstype "${target}")
-                echo "luks device detected use $target"
+                target_device=$(find /dev/mapper -iname "*$label")
+                fs_type=$(get_fstype "${target_device}")
+                echo "luks device detected use $target_device"
             fi
         fi
         case ${fs_type} in
             ext*)
-                /sbin/mke2fs -L "${label}" -F -t ext4 "${target}"
+                /sbin/mke2fs -L "${label}" -F -t ext4 "${target_device}"
                 ;;
             btrfs)
-                /sbin/mkfs.btrfs -L "${label}" --force "${target}"
+                /sbin/mkfs.btrfs -L "${label}" --force "${target_device}"
                 ;;
             *)
                 log_warning_msg "Unrecognized filesystem type ${fs_type} - could not format"
                 ;;
         esac
-        log_end_msg "Reset device: $target"
+        log_end_msg "Reset device: $target_device"
     done
     log_end_msg "Factory Reset"
 fi
