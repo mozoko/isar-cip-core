@@ -11,6 +11,7 @@
 
 IMAGE_INSTALL:append = " efibootguard-tools libebgenv0"
 IMAGER_INSTALL:wic:append = " efibootguard:${DISTRO_ARCH} efibootguard-tools:${DISTRO_ARCH}"
+IMAGER_BUILD_DEPS:wic:append = " efibootguard"
 IMAGER_BOM:wic:append = " efibootguard:${DISTRO_ARCH}"
 WDOG_TIMEOUT ?= "60"
 WICVARS += "WDOG_TIMEOUT KERNEL_IMAGE INITRD_DEPLOY_FILE DTB_FILES EFI_ARCH EFI_LIB_ARCH UKI_FILENAME"
