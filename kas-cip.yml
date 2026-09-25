@@ -22,9 +22,16 @@ repos:
 
   isar:
     url: https://github.com/ilbers/isar.git
-    commit: 589bee972846c1f88797465262d1efbbb254d4d0
+    commit: 1d8791f5ea178bc31ba2ff3c211ef5030f542c13
     layers:
       meta:
+    patches:
+      p1:
+        repo: cip-core
+        path: isar-patches/0001-isar-mounts-mount-run-as-tmpfs-for-systemd-execution.patch
+      p2:
+        repo: cip-core
+        path: isar-patches/0002-image-postproc-extension-fix-machine-id-file-being-w.patch
 
 bblayers_conf_header:
   standard: |

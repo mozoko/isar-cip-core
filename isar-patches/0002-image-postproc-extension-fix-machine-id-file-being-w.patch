@@ -1,0 +1,35 @@
+From ac63ef6d3ebbfe6d0ba23caea659c7d4f609a0f6 Mon Sep 17 00:00:00 2001
+From: Badrikesh Prusty <badrikesh.prusty@siemens.com>
+Date: Wed, 23 Sep 2026 20:13:06 +0200
+Subject: [PATCH 2/2] image-postproc-extension: fix machine-id file being
+ written empty
+
+The pipe operation was lost when passing data to run_in_chroot because
+run_privileged_heredoc consumes stdin for the heredoc script, resulting
+in an empty /etc/machine-id file.
+Move the pipe operation inside the chroot environment to fix it. This
+ensures /etc/machine-id is properly written with either "uninitialized"
+(systemd >= 247) or empty string (systemd < 247).
+
+Fixes: 14acf490 ("introduce wrappers for privileged execution")
+Signed-off-by: Badrikesh Prusty <badrikesh.prusty@siemens.com>
+---
+ meta/classes-recipe/image-postproc-extension.bbclass | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/meta/classes-recipe/image-postproc-extension.bbclass b/meta/classes-recipe/image-postproc-extension.bbclass
+index 59128c2a..9e37a65b 100644
+--- a/meta/classes-recipe/image-postproc-extension.bbclass
++++ b/meta/classes-recipe/image-postproc-extension.bbclass
+@@ -63,7 +63,7 @@ image_postprocess_machine_id() {
+     if dpkg --compare-versions "$SYSTEMD_VERSION" "lt" "247"; then
+         MACHINE_ID=""
+     fi
+-    echo "$MACHINE_ID" | run_in_chroot ${IMAGE_ROOTFS} tee /etc/machine-id
++    run_in_chroot ${IMAGE_ROOTFS} sh -c "echo $MACHINE_ID | tee /etc/machine-id"
+     run_privileged rm -f '${IMAGE_ROOTFS}/var/lib/dbus/machine-id'
+ }
+ 
+-- 
+2.47.3
+
