@@ -27,6 +27,7 @@ variables:
   separate_home_partition: disable
   factory_reset: disable
   no_kernel: disable
+  cis_hardening: disable
 
 stages:
   - build
@@ -72,6 +73,9 @@ default:
     - if [ "${security_test}" = "enable" ]; then base_yaml="${base_yaml}:kas/opt/security_test.yml"; fi
     - if [ "${swupdate_version}" = "2022.12" ]; then base_yaml="${base_yaml}:kas/opt/swupdate-2022.12.yaml"; fi
     - if [ "${no_kernel}" = "enable" ]; then base_yaml="${base_yaml}:kas/opt/no_kernel.yml:kas/opt/targz.yml"; fi
+    - if [ "${cis_hardening}" = "enable" ]; then
+          base_yaml="${base_yaml}:kas/opt/cis-hardening.yml:kas/opt/cis-hardening-test.yml";
+      fi
     - echo "Building ${base_yaml}"
     - kas build ${base_yaml}
     - if [ "${deploy}" = "enable" ]; then scripts/deploy-cip-core.sh ${release} ${target} ${extension} ${no_kernel} ${dtb} ${CI_PIPELINE_ID} wic; fi
@@ -255,6 +259,7 @@ build:qemu-amd64-swupdate:
     extension: ebg-swu
     use_rt: disable
     factory_reset: enable
+    cis_hardening: enable
 
 build:ti-am62px-sk-secure-boot:
   extends:
