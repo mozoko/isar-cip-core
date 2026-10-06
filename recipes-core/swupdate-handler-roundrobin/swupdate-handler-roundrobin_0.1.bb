@@ -28,8 +28,8 @@ SRC_URI += "${@('file://' + d.getVar('SWUPDATE_ROUND_ROBIN_HANDLER_CONFIG')) if 
 
 SWUPDATE_LUA_VERSION = "5.5"
 SWUPDATE_LUA_VERSION:trixie = "5.4"
-SWUPDATE_LUA_VERSION:bookworm = "5.3"
-SWUPDATE_LUA_VERSION:bullseye = "5.3"
+SWUPDATE_LUA_VERSION:bookworm = "5.4"
+SWUPDATE_LUA_VERSION:bullseye = "5.4"
 SWUPDATE_LUA_VERSION:buster = "5.3"
 
 do_install[cleandirs] = "${D}/etc \
