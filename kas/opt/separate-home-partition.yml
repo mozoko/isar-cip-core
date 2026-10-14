@@ -12,7 +12,7 @@
 # This provide backward compability to the previous isar-cip-core
 # versions.
 header:
-  version: 14
+  version: 23
 
 local_conf_header:
   separate-home-partition: |

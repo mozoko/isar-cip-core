@@ -10,7 +10,7 @@
 #
 
 header:
-  version: 14
+  version: 23
   includes:
     - kas/opt/encrypt-data.yml
 local_conf_header:

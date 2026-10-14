@@ -8,7 +8,7 @@
 #
 
 header:
-  version: 14
+  version: 23
 
 local_conf_header:
   lava-testing-add-curl: |

@@ -10,7 +10,7 @@
 #
 
 header:
-  version: 14
+  version: 23
 
 distro: cip-core-trixie
 target: cip-core-image

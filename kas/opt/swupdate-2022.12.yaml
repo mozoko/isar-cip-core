@@ -12,7 +12,7 @@
 # from the first wic partition
 
 header:
-  version: 14
+  version: 23
   includes:
    - kas/opt/swupdate.yml
 
