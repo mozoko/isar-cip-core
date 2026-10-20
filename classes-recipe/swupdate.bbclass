@@ -42,6 +42,7 @@ SWU_ADDITIONAL_FILES ?= "${SWU_KERNEL_ARTIFACT_NAME} ${SWU_ROOTFS_ARTIFACT_NAME}
 
 # Including swupdate.inc in CIP_IMAGE_OPTIONS enables signing by default.
 SWU_SIGNED ??= ""
+SWU_SIGN_UPDATE ??= "${SWU_SIGNED}"
 SWU_SIGNATURE_EXT ?= "sig"
 SWU_SIGNATURE_TYPE ?= "cms"
 
@@ -231,7 +232,7 @@ IMAGE_CMD:swu() {
         done
 
         # Prepare for signing
-        export sign='${@'x' if bb.utils.to_boolean(d.getVar('SWU_SIGNED')) else ''}'
+        export sign='${@'x' if bb.utils.to_boolean(d.getVar('SWU_SIGN_UPDATE')) else ''}'
         export swu_file_base
         # create a exetension to differ between swus
         swu_file_extension=""

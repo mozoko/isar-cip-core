@@ -35,7 +35,8 @@ DEPENDS += "${@get_bootloader_dependencies(d)}"
 DEPENDS += "${@bb.utils.contains('DEB_BUILD_PROFILES', 'mtd', 'mtd-utils', '', d)}"
 
 SWU_SIGNED ?= "1"
-DEB_BUILD_PROFILES += "${@'pkg.swupdate.nosigning' if not bb.utils.to_boolean(d.getVar('SWU_SIGNED')) else ''}"
+SWU_VERIFY_UPDATE ??= "${SWU_SIGNED}"
+DEB_BUILD_PROFILES += "${@'pkg.swupdate.nosigning' if not bb.utils.to_boolean(d.getVar('SWU_VERIFY_UPDATE')) else ''}"
 
 # deactivate testing
 DEB_BUILD_PROFILES += "nocheck"
