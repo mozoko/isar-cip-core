@@ -142,7 +142,6 @@ PREFERRED_PROVIDER_swupdate-certificates-key = "swupdate-certificates-key"
 PREFERRED_PROVIDER_swupdate-certificates = "swupdate-certificates"
 PREFERRED_PROVIDER_swupdate-signer = "swupdate-signer-cms"
 SWU_SIGN_KEY  = "<siging key file name>"
-IMAGE_INSTALL += "${@'swupdate-certificates' if bb.utils.to_boolean(d.getVar('SWU_SIGNED')) else ''}"
 ```
 
 The files `<sigining certificate file name>` and `<siging key file name>` need to be stored
