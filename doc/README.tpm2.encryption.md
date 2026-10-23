@@ -88,6 +88,34 @@ The data partition in the fallback system will have the `noencrypt` flag set, wh
 - Update fails at a later point and is not blessed; system reboots into the fallback system on slot A.
 - Fallback system now needs to be able to use the shared data partition.
 
+Example:
+
+```mermaid
+flowchart LR
+
+    S1["Step 1: Field State (v1)<br/>Slot A: Active<br/>Flag: none<br/>Slot B: Inactive<br/>Flag: none<br/>Shared Data: Unencrypted"]
+
+    S2["Step 2: Apply SWUpdate (v2 with noencrypt)<br/>Slot A: Inactive<br/>Flag: none<br/>Slot B: Active<br/>Flag: noencrypt<br/>Shared Data: Unencrypted"]
+
+    S3["Step 3: Apply SWUpdate (v3 with reencrypt)<br/>Slot A: Inactive<br/>Flag: reencrypt<br/>Slot B: Active<br/>Flag: noencrypt<br/>Shared Data: Unencrypted"]
+
+    SUCCESSFUL["Case 1: Applied successfully <br/> <br/>Slot A: Active<br/>Flag: reencrypt<br/>Slot B: Inactive<br/>Flag: noencrypt<br/>Shared Data: Encrypted"]
+
+    UNSUCCESSFUL["Case 2: Failure after encrypting shared partitions <br/> <br/> Rollback to Slot B<br/>Slot A: Inactive<br/>Flag: reencrypt<br/>Slot B: Active<br/>Flag: noencrypt<br/>Shared Data: Encrypted"]
+
+    OK["noencrypt flag prevents re-encryption<br/>  <br/> Encrypted data remains<br/>accessible"]
+
+    S1 --> S2
+    S2 --> S3
+    S3 --> SUCCESSFUL
+    S3 --> UNSUCCESSFUL
+    UNSUCCESSFUL --> OK
+```
+
+* v1 (field state): cannot decrypt
+* v2 (intermediate update): could decrypt, but must not encrypt so that rollback to v1 still work
+* v3 (final update): can decrypt, thus encrypts, and rollback to v2 would still be possible
+
 In this case, where encryption is added via an update, the `format-if-empty` option is also useful. The system with encryption enabled has the `format-if-empty` option set for the partition(s) in the inactive update slot. This will cause both sets of partitions in both slots to be encrypted after the first boot on a fresh factory flashed system, but will not disturb existing data of any fallback system if booted after an update.
 
 ### CRYPT_CREATE_FILE_SYSTEM_CMD
